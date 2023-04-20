@@ -1,6 +1,6 @@
 # ESE-326-Final-Project
 
-Design, implement, and experiment a placement algorithm with the following characteristics:                                                                      
+Design, experiment, and implement a placement algorithm with the following characteristics:                                                                      
 
 - The algorithm implements Timberwolf placement (placement using Simulated Annealing)
 - The algorithm considers standard cell placement, e.g., all cells are placed in rows
