@@ -26,9 +26,9 @@ int main()
 			infile >> arg1;
 		}
 		
-		//while (!infile.eof())
-		int limit = 0;
-		while (limit < 50)
+		while (!infile.eof())
+		//int limit = 0;
+		//while (limit < 50)
 		{
 			infile >> arg1;
 			infile >> arg2;
@@ -47,7 +47,7 @@ int main()
 			{
 				tnet.push_back(arg1);
 			}
-			limit++;
+			//limit++;
 		}
 	}
 	for (int i = 0; i < nets.size(); i++)
@@ -59,14 +59,6 @@ int main()
 		}
 		cout << endl;
 	}
-
-	/*vector<vector<int> > v = { {1,2}, {3,4} };
-	for (const auto& inner : nets) {
-		for (const auto& item : inner) {
-			cout << item << " ";
-		}
-	}*/
-
 	infile.close();
 	return 0;
 }
