@@ -23,6 +23,8 @@ int main()
 	ifstream infil(fileare);
 	vector <int> areas;
 	vector <string> pins;
+	vector <vector<string>> coord;
+	vector <string> tcoord;
 	if (!infil.is_open())
 	{
 		cout << "Error opening file";
@@ -40,7 +42,6 @@ int main()
 			}
 			else
 			{
-				
 				if (area > maxl)
 				{
 					maxl = area;
@@ -57,6 +58,7 @@ int main()
 	}
 
 	//***********************************************************************************************************//
+
 	string filenet = "ibm01.net";
 	string arg1, arg2, arg3;
 	ifstream infile(filenet);
@@ -108,39 +110,48 @@ int main()
 		//cout << endl;
 	}
 
-
-
-	
-	
 	for (int i = 0; i < areas.size(); i++)
 	{
 		//cout << areas[i] << endl;
 	}
+	asum /= minl;
+	maxl /= minl;
+
 	if (range < 9999)
 	{
-
+		maxh = ceil(sqrt(maxl));
+		maxl = maxh;
+		//maxh /= minl;
+		//maxl /= minl;
 	}
 	else
 	{
-		maxl /= minl;
-		//cout << maxl << endl;
-		asum /= minl;
-		maxh = (double)asum / maxl;
-		maxh = ceil(maxh);
+		maxh = ceil((double) asum / maxl);
+		//maxh /= minl;
+		//maxl /= minl;
+	}
 		ph = maxh / (maxl + maxh);
 		pl = 1 - ph;
 		npins = pins.size() - 1;
 		nlength = npins * pl / 2;
 		nwidth = npins * ph / 2;
 
+
 		//cout << ph << endl;
-		cout << minl << endl;
+		cout << maxh << endl;
 		//cout << maxh << endl;
 		//cout << ceil(sqrt(asum)) << endl;
 		//cout << asum << endl;
 		//cout << numpads << endl;
 		cout << npins;	// Pretend it makes sense
-	}
+
+		int randx = 0, randy = 0;
+		for (int i = 0; i < areas.size(); i++)
+		{
+			tcoord.push_back(areas[i][0]);
+
+			coord.push_back(tcoord[i]);
+		}
 	
 	infil.close();
 	return 0;
