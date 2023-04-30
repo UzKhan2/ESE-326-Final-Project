@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <ctime> 
 #include <math.h>
 #include <string>
 
@@ -8,6 +9,7 @@ using namespace std;
 
 int main()
 {
+	srand((unsigned int)time(NULL));
 	string fileare = "ibm01.are";
 	string text;
 	int area;
@@ -15,7 +17,7 @@ int main()
 	int maxl = 0;
 	int minl = 99999;
 	int range = 0;
-	double maxh = 0;
+	int maxh = 0;
 	double ph = 0;
 	double pl = 0;
 	int npins = 0;
@@ -23,6 +25,7 @@ int main()
 	ifstream infil(fileare);
 	vector <int> areas;
 	vector <string> pins;
+	vector <string> names;
 	vector <vector<string>> coord;
 	vector <string> tcoord;
 	if (!infil.is_open())
@@ -38,7 +41,7 @@ int main()
 			infil >> area;
 			if (area == 0)
 			{
-					pins.push_back(text);
+				pins.push_back(text);
 			}
 			else
 			{
@@ -53,6 +56,7 @@ int main()
 				asum += area;
 				areas.push_back(area);
 			}
+			names.push_back(text);
 		}
 		range = maxl - minl;
 	}
@@ -83,7 +87,7 @@ int main()
 		{
 			infile >> arg1;
 			infile >> arg2;
-			if (arg2.compare("s") == 0)	
+			if (arg2.compare("s") == 0)
 			{
 				infile >> arg3;
 				if (count > 0)
@@ -126,33 +130,44 @@ int main()
 	}
 	else
 	{
-		maxh = ceil((double) asum / maxl);
+		maxh = ceil((double)asum / maxl);
 		//maxh /= minl;
 		//maxl /= minl;
 	}
-		ph = maxh / (maxl + maxh);
-		pl = 1 - ph;
-		npins = pins.size() - 1;
-		nlength = npins * pl / 2;
-		nwidth = npins * ph / 2;
+	ph = maxh / (maxl + maxh);
+	pl = 1 - ph;
+	npins = pins.size() - 1;
+	nlength = npins * pl / 2;
+	nwidth = npins * ph / 2;
 
 
-		//cout << ph << endl;
-		cout << maxh << endl;
-		//cout << maxh << endl;
-		//cout << ceil(sqrt(asum)) << endl;
-		//cout << asum << endl;
-		//cout << numpads << endl;
-		cout << npins;	// Pretend it makes sense
+	//cout << ph << endl;
+	cout << maxh << endl;
+	//cout << maxh << endl;
+	//cout << ceil(sqrt(asum)) << endl;
+	//cout << asum << endl;
+	//cout << numpads << endl;
+	cout << npins;	// Pretend it makes sense
 
-		int randx = 0, randy = 0;
-		for (int i = 0; i < areas.size(); i++)
-		{
-			tcoord.push_back(areas[i][0]);
+	int randx = 0, randy = 0;
+	for (int i = 0; i < areas.size(); i++) //initial placement of gates only, done randomly
+	{
+		tcoord.push_back(names[i]);
+		randx = rand() % maxl;
+		randy = rand() % maxh;
+		tcoord.push_back(to_string(randx));
+		tcoord.push_back(to_string(randy));
+		coord.push_back(tcoord);
+		tcoord.clear();
+	}
 
-			coord.push_back(tcoord[i]);
+	for (int h = 0; h < coord.size(); h++) {
+		for (int r = 0; r < coord[0].size(); r++) {
+			cout << coord[h][r] << " ";
 		}
-	
+		cout << endl;
+	}
+
 	infil.close();
 	return 0;
 }
