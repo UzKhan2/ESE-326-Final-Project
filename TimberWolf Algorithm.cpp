@@ -38,7 +38,7 @@ int main()
 	vector<vector<string>> nets;
 	vector<string> tnet;
 
-	int pperh =  0; // Pins divided by height
+	int pperh = 0; // Pins divided by height
 	if (!infil.is_open())
 	{
 		cout << "Error opening file";
@@ -132,23 +132,35 @@ int main()
 
 	if (range < 9999)
 	{
-		maxh = (int) ceil(sqrt(maxl));
+		maxh = (int)ceil(sqrt(maxl));
 		maxl = maxh;
 		//maxh /= minl;
 		//maxl /= minl;
 	}
 	else
 	{
-		maxh = (int) ceil((double) asum / maxl);
+		maxh = (int)ceil((double)asum / maxl);
 		//maxh /= minl;
 		//maxl /= minl;
 	}
-	ph = maxh / (maxl + maxh);
-	pl = 1 - ph;
-	npins = (int) pins.size() - 1;
-	nlength = npins *  (int) pl / 2;
-	nwidth = npins * (int) ph / 2;
+	ph = (double)maxh / (maxl + maxh);
+	pl = (double)1 - ph;
+	npins = (int)pins.size() - 1;
+	nwidth = ceil(npins * ph);
+	if (nwidth == 1) {
+		nwidth = 2;
+	}
+	nlength = npins - nwidth;
+	
+	nlength /= 2;
+	nwidth /= 2;
 
+	cout << pl << endl;
+	cout << ph << endl;
+	cout << npins << endl;
+	cout << nlength << endl;
+	cout << nwidth << endl;
+	
 	cout << maxh << endl;
 	cout << npins;
 
@@ -182,36 +194,109 @@ int main()
 	{
 		pins2.push_back(names[i]);
 	}
-	if (nwidth != 0) {pperh = maxh / nwidth;}
+	int pcount = 0;
 
-	for (int i = 0; i < nwidth; i++)	// Left wall
-	{
-		pinplc = rand() % pins2.size();	// Find random part
-		tcoord.push_back(pins2[pinplc]);	// Takes in pin
-		tcoord.push_back(to_string(0));
-		tcoord.push_back(to_string(i* pperh));
-		coord.push_back(tcoord);
-		tcoord.clear();
-		pins2.erase(pins2.begin()+pinplc);
+	if (nwidth != 0) { 
+		if (nwidth <= 2) {
+			pperh = maxh / (nwidth+1);
+
+			for (int i = 1; i <= nwidth; i++)	// Left wall
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back("0"); //x
+				tcoord.push_back(to_string(i * pperh)); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+
+			for (int i = 1; i <= nwidth; i++)	// Right wall
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back(to_string(maxl)); //x
+				tcoord.push_back(to_string(i * pperh)); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+		}
+		else {
+			pperh = maxh / (nwidth-1);
+
+			for (int i = 0; i < nwidth; i++)	// Left wall
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back("0"); //x
+				tcoord.push_back(to_string(i * pperh)); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+
+			for (int i = 0; i < nwidth; i++)	// Right wall
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back(to_string(maxl)); //x
+				tcoord.push_back(to_string(i * pperh)); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+		}
 	}
 
-	for (int i = 0; i < nwidth; i++)	// Right wall
-	{
-		pinplc = rand() % pins2.size();	// Find random part
-		tcoord.push_back(pins2[pinplc]);	// Takes in pin
-		tcoord.push_back(to_string(maxl));
-		tcoord.push_back(to_string(i * pperh));
-		coord.push_back(tcoord);
-		tcoord.clear();
-		pins2.erase(pins2.begin() + pinplc);
-	}
+	
 
-	/*for (int i = areas.size(); i < names.size(); i++)
-	{
-		tcoord.push_back(names[i]);
-		
-		tcoord.clear();
-	}*/
+	int pperl = 0;
+	if (nlength != 0) { 
+		if (nlength <= 2) {
+			pperl = maxl / (nlength+1);
+
+			for (int i = 1; i <= nlength; i++)	// Top border
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back(to_string(i * pperl)); //x
+				tcoord.push_back(to_string(maxh)); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+
+			for (int i = 1; i <= nlength; i++)	// Bottom border
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back(to_string(i * pperl)); //x
+				tcoord.push_back("0"); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+		}
+		else {
+			pperl = maxl / (nlength-1);
+
+			for (int i = 0; i < nlength; i++)	// Top border
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back(to_string(i * pperl)); //x
+				tcoord.push_back(to_string(maxh)); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+
+			for (int i = 0; i < nlength; i++)	// Bottom border
+			{
+				tcoord.push_back(pins2[pcount]);	// Takes in pin
+				tcoord.push_back(to_string(i * pperl)); //x
+				tcoord.push_back("0"); //y
+				coord.push_back(tcoord);
+				tcoord.clear();
+				pcount++;
+			}
+		} 
+	}
+	
 
 	for (int h = 0; h < coord.size(); h++)
 	{
@@ -221,7 +306,7 @@ int main()
 		}
 		cout << endl;
 	}
-
+	
 	infil.close();
 	return 0;
 }
