@@ -362,3 +362,13 @@ void perturb(vector<vector<string>> chip, int height, int length, vector<int> sd
 	lt = lt * (log(tnext) / log(tcurr)); //reduce scope
 	ht = ht * (log(tnext) / log(tcurr));
 }
+
+double schedule(double T) {
+	double newT = T - .95;
+	if (newT < 0) {
+		return T;
+	}
+	else {
+		return newT;
+	}
+}
