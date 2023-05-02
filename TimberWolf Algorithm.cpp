@@ -6,8 +6,8 @@
 #include <string>
 using namespace std;
 
-int lt; //length range limit
-int ht; //height range limit
+int lt; //length perturb range limit
+int ht; //height perturb range limit
 
 int main()
 {
