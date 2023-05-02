@@ -6,6 +6,9 @@
 #include <string>
 using namespace std;
 
+int lt; //length range limit
+int ht; //height range limit
+
 int main()
 {
 	srand((unsigned int)time(NULL));	// Seed random generator
@@ -164,6 +167,9 @@ int main()
 	cout << maxh << endl;
 	cout << npins;
 
+	lt = maxl;
+	ht = maxh;
+
 	int randx = 0, randy = 0;
 
 	for (int i = 0; i < areas.size(); i++)
@@ -311,15 +317,22 @@ int main()
 	return 0;
 }
 
-void perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl
+void perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
 	int choice = rand() % 2; //0 or 1 to decide on move or swap
 	int cell1 = rand() % numGates; //choose random gate
-	int cell2 = rand() % numGates; //choose random gate
+	int cell2 = 999999;
+	while ((cell2 == 999999) || (stoi(chip[cell2][1]) > (stoi(chip[cell1][1]) + (lt / 2))) || (stoi(chip[cell2][1]) < (stoi(chip[cell1][1]) - (lt / 2))) || (stoi(chip[cell2][2]) > (stoi(chip[cell1][2]) + (ht / 2))) || (stoi(chip[cell2][2]) < (stoi(chip[cell1][2]) - (ht / 2)))) {
+		   //hasn't changed				goes past right range wall								goes past left range wall										goes past top wall														goes under bottom wall
+		cell2 = rand() % numGates; //keep looking for a cell until it is within the scope
+	}
 	int row = 0;
-	string placeholderX1 = 0, placeholderY1 = 0, placeholderX2 = 0, placeholderY2 = 0;
+	string placeholderX1, placeholderY1, placeholderX2, placeholderY2;
 	int len1 = areas[cell1] / lcd; //length of gate1
 	int len2 = areas[cell2] / lcd; //length of gate2
 	int dFromEdge = 0;
+	double tcurr = T;
+	double tnext = T - .95;
+
 
 	if(choice == 0){//Move
 		row = rand() % height; //move to random row
@@ -346,4 +359,6 @@ void perturb(vector<vector<string>> chip, int height, int length, vector<int> sd
 		chip[cell2][1] = placeholderX1;
 		chip[cell2][2] = placeholderY1;
 	}
+	lt = lt * (log(tnext) / log(tcurr)); //reduce scope
+	ht = ht * (log(tnext) / log(tcurr));
 }
