@@ -151,7 +151,7 @@ int main()
 		nwidth = 2;
 	}
 	nlength = npins - nwidth;
-	
+
 	nlength /= 2;
 	nwidth /= 2;
 
@@ -160,7 +160,7 @@ int main()
 	cout << npins << endl;
 	cout << nlength << endl;
 	cout << nwidth << endl;
-	
+
 	cout << maxh << endl;
 	cout << npins;
 
@@ -196,9 +196,9 @@ int main()
 	}
 	int pcount = 0;
 
-	if (nwidth != 0) { 
+	if (nwidth != 0) {
 		if (nwidth <= 2) {
-			pperh = maxh / (nwidth+1);
+			pperh = maxh / (nwidth + 1);
 
 			for (int i = 1; i <= nwidth; i++)	// Left wall
 			{
@@ -221,7 +221,7 @@ int main()
 			}
 		}
 		else {
-			pperh = maxh / (nwidth-1);
+			pperh = maxh / (nwidth - 1);
 
 			for (int i = 0; i < nwidth; i++)	// Left wall
 			{
@@ -245,12 +245,12 @@ int main()
 		}
 	}
 
-	
+
 
 	int pperl = 0;
-	if (nlength != 0) { 
+	if (nlength != 0) {
 		if (nlength <= 2) {
-			pperl = maxl / (nlength+1);
+			pperl = maxl / (nlength + 1);
 
 			for (int i = 1; i <= nlength; i++)	// Top border
 			{
@@ -273,7 +273,7 @@ int main()
 			}
 		}
 		else {
-			pperl = maxl / (nlength-1);
+			pperl = maxl / (nlength - 1);
 
 			for (int i = 0; i < nlength; i++)	// Top border
 			{
@@ -294,9 +294,9 @@ int main()
 				tcoord.clear();
 				pcount++;
 			}
-		} 
+		}
 	}
-	
+
 
 	for (int h = 0; h < coord.size(); h++)
 	{
@@ -306,7 +306,44 @@ int main()
 		}
 		cout << endl;
 	}
-	
+
 	infil.close();
 	return 0;
+}
+
+void perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl
+	int choice = rand() % 2; //0 or 1 to decide on move or swap
+	int cell1 = rand() % numGates; //choose random gate
+	int cell2 = rand() % numGates; //choose random gate
+	int row = 0;
+	string placeholderX1 = 0, placeholderY1 = 0, placeholderX2 = 0, placeholderY2 = 0;
+	int len1 = areas[cell1] / lcd; //length of gate1
+	int len2 = areas[cell2] / lcd; //length of gate2
+	int dFromEdge = 0;
+
+	if(choice == 0){//Move
+		row = rand() % height; //move to random row
+		chip[cell1][2] = row;
+	}
+	else{//Swap
+		placeholderX1 = chip[cell1][1];
+		placeholderY1 = chip[cell1][2];
+		placeholderX2 = chip[cell2][1];
+		placeholderY2 = chip[cell2][2];
+
+		if (((len2 + stoi(chip[cell1][1])) > length) || ((len1 + stoi(chip[cell2][1])) > length)) { //if the new x coordinate makes either of the gates go over the right wall of the chip, then can't swap and must mirror
+			if (stoi(chip[cell1][2]) > (height/2)) {
+				dFromEdge = height - stoi(chip[cell1][2]);
+				chip[cell1][2] = to_string(dFromEdge);
+			}
+			else {
+				dFromEdge = stoi(chip[cell1][2]);
+				chip[cell1][2] = to_string(height-dFromEdge);
+			}
+		}
+		chip[cell1][1] = placeholderX2;
+		chip[cell1][2] = placeholderY2;
+		chip[cell2][1] = placeholderX1;
+		chip[cell2][2] = placeholderY1;
+	}
 }
