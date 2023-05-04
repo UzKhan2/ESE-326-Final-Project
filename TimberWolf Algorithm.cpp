@@ -9,6 +9,114 @@ using namespace std;
 int lt; //length perturb range limit
 int ht; //height perturb range limit
 
+void perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
+	int choice = rand() % 2; //0 or 1 to decide on move or swap
+	int cell1 = rand() % numGates; //choose random gate
+	int cell2 = 999999;
+	while ((cell2 == 999999) || (stoi(chip[cell2][1]) > (stoi(chip[cell1][1]) + (lt / 2))) || (stoi(chip[cell2][1]) < (stoi(chip[cell1][1]) - (lt / 2))) || (stoi(chip[cell2][2]) > (stoi(chip[cell1][2]) + (ht / 2))) || (stoi(chip[cell2][2]) < (stoi(chip[cell1][2]) - (ht / 2)))) {
+		//hasn't changed				goes past right range wall								goes past left range wall										goes past top wall														goes under bottom wall
+		cell2 = rand() % numGates; //keep looking for a cell until it is within the scope
+	}
+	int row = 0;
+	string placeholderX1, placeholderY1, placeholderX2, placeholderY2;
+	int len1 = areas[cell1] / lcd; //length of gate1
+	int len2 = areas[cell2] / lcd; //length of gate2
+	int dFromEdge = 0;
+	double tcurr = T;
+	double tnext = T - .95;
+
+
+	if (choice == 0) {//Move
+		row = rand() % height; //move to random row
+		chip[cell1][2] = row;
+	}
+	else {//Swap
+		placeholderX1 = chip[cell1][1];
+		placeholderY1 = chip[cell1][2];
+		placeholderX2 = chip[cell2][1];
+		placeholderY2 = chip[cell2][2];
+
+		if (((len2 + stoi(chip[cell1][1])) > length) || ((len1 + stoi(chip[cell2][1])) > length)) { //if the new x coordinate makes either of the gates go over the right wall of the chip, then can't swap and must mirror
+			if (stoi(chip[cell1][2]) > (height / 2)) {
+				dFromEdge = height - stoi(chip[cell1][2]);
+				chip[cell1][2] = to_string(dFromEdge);
+			}
+			else {
+				dFromEdge = stoi(chip[cell1][2]);
+				chip[cell1][2] = to_string(height - dFromEdge);
+			}
+		}
+		chip[cell1][1] = placeholderX2;
+		chip[cell1][2] = placeholderY2;
+		chip[cell2][1] = placeholderX1;
+		chip[cell2][2] = placeholderY1;
+	}
+	lt = lt * (log(tnext) / log(tcurr)); //reduce scope
+	ht = ht * (log(tnext) / log(tcurr));
+}
+
+double schedule(double T)
+{
+	double newT = T - .95;
+	if (newT < 0) {
+		return T;
+	}
+	else {
+		return newT;
+	}
+}
+
+int max(vector <int> temp)
+{
+	int max = temp[0];
+	for (int i = 1; i < temp.size(); i++)
+	{
+		if (temp[i] > max) {max = temp[i];}
+	}
+	return max;
+}
+
+int min(vector <int> temp)
+{
+	int min = temp[0];
+	for (int i = 1; i < temp.size(); i++)
+	{
+		if (temp[i] < min) {min = temp[i];}
+	}
+	return min;
+}
+
+int cost15(vector<vector<string>> nets, vector <vector<string>> coord, int c)	// Length Cost
+{
+	int rangey = 0, rangex = 0, ind = 0, sum = 0, maxNLength = 0;
+	vector <int> xcoord;
+	vector <int> ycoord;
+	vector <int> net_length;
+
+	for (int i = 0; i < nets.size(); i++)
+	{
+		for (int j = 0; j < nets[0].size(); j++)
+		{
+			ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1));
+			xcoord.push_back(stoi (coord[ind][1]));
+			ycoord.push_back(stoi(coord[ind][2]));
+		}
+		rangey = max(ycoord) - min(ycoord);
+		rangex = max(xcoord) - min(xcoord);
+		net_length.push_back(rangey + rangex);
+		sum += rangey + rangex;
+	}
+	maxNLength = max(net_length);
+	if (c == 1)
+	{
+		return sum / nets.size();
+	}
+	else if (c == 5)
+	{
+		return maxNLength;
+	}
+}
+
 int main()
 {
 	srand((unsigned int)time(NULL));	// Seed random generator
@@ -251,8 +359,6 @@ int main()
 		}
 	}
 
-
-
 	int pperl = 0;
 	if (nlength != 0) {
 		if (nlength <= 2) {
@@ -303,7 +409,6 @@ int main()
 		}
 	}
 
-
 	for (int h = 0; h < coord.size(); h++)
 	{
 		for (int r = 0; r < coord[0].size(); r++)
@@ -315,60 +420,4 @@ int main()
 
 	infil.close();
 	return 0;
-}
-
-void perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
-	int choice = rand() % 2; //0 or 1 to decide on move or swap
-	int cell1 = rand() % numGates; //choose random gate
-	int cell2 = 999999;
-	while ((cell2 == 999999) || (stoi(chip[cell2][1]) > (stoi(chip[cell1][1]) + (lt / 2))) || (stoi(chip[cell2][1]) < (stoi(chip[cell1][1]) - (lt / 2))) || (stoi(chip[cell2][2]) > (stoi(chip[cell1][2]) + (ht / 2))) || (stoi(chip[cell2][2]) < (stoi(chip[cell1][2]) - (ht / 2)))) {
-		   //hasn't changed				goes past right range wall								goes past left range wall										goes past top wall														goes under bottom wall
-		cell2 = rand() % numGates; //keep looking for a cell until it is within the scope
-	}
-	int row = 0;
-	string placeholderX1, placeholderY1, placeholderX2, placeholderY2;
-	int len1 = areas[cell1] / lcd; //length of gate1
-	int len2 = areas[cell2] / lcd; //length of gate2
-	int dFromEdge = 0;
-	double tcurr = T;
-	double tnext = T - .95;
-
-
-	if(choice == 0){//Move
-		row = rand() % height; //move to random row
-		chip[cell1][2] = row;
-	}
-	else{//Swap
-		placeholderX1 = chip[cell1][1];
-		placeholderY1 = chip[cell1][2];
-		placeholderX2 = chip[cell2][1];
-		placeholderY2 = chip[cell2][2];
-
-		if (((len2 + stoi(chip[cell1][1])) > length) || ((len1 + stoi(chip[cell2][1])) > length)) { //if the new x coordinate makes either of the gates go over the right wall of the chip, then can't swap and must mirror
-			if (stoi(chip[cell1][2]) > (height/2)) {
-				dFromEdge = height - stoi(chip[cell1][2]);
-				chip[cell1][2] = to_string(dFromEdge);
-			}
-			else {
-				dFromEdge = stoi(chip[cell1][2]);
-				chip[cell1][2] = to_string(height-dFromEdge);
-			}
-		}
-		chip[cell1][1] = placeholderX2;
-		chip[cell1][2] = placeholderY2;
-		chip[cell2][1] = placeholderX1;
-		chip[cell2][2] = placeholderY1;
-	}
-	lt = lt * (log(tnext) / log(tcurr)); //reduce scope
-	ht = ht * (log(tnext) / log(tcurr));
-}
-
-double schedule(double T) {
-	double newT = T - .95;
-	if (newT < 0) {
-		return T;
-	}
-	else {
-		return newT;
-	}
 }
