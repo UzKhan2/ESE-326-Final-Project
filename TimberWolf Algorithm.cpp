@@ -100,14 +100,14 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 	{
 		for (int j = 0; j < nets[i].size(); j++)
 		{
-			if (nets[i][j].substr(1, nets[i][j].size() - 1).compare("p") == 0) { //if pin
+			if (nets[i][j].substr(0).compare("p") == 0) { //if pin
 				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1)) + (areas.size()-1);
 			}
 			else {// if gate
 				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1));
 			}		
 			xcoord.push_back(stoi(coord[ind][1]));
-			ycoord.push_back(stoi(coord[ind][2]));
+			ycoord.push_back(stoi(coord[ind][2])); //problem here
 		}
 		rangey = max(ycoord) - min(ycoord);
 		rangex = max(xcoord) - min(xcoord);
@@ -199,14 +199,14 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 		for (int j = 0; j < nets[i].size() - 1; j++) {
 			point1 = nets[i][j];
 			point2 = nets[i][j + 1];
-			if (point1.substr(1).compare("p") == 0) {
+			if (point1.substr(0).compare("p") == 0) {
 				ind1 = stoi(point1.substr(1, point1.length())) + (numGates - 1);
 			}
 			else {
 				ind1 = stoi(point1.substr(1, point1.length()));
 			}
 
-			if (point2.substr(1).compare("p") == 0) {
+			if (point2.substr(0).compare("p") == 0) {
 				ind2 = stoi(point2.substr(1, point2.length())) + (numGates - 1);
 			}
 			else {
@@ -329,7 +329,7 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 			}
 		}
 	}
-	cout << (double)r1C << " " << (double)r2C << " " << (double)r3C << " " << (double)r4C << " " << (double)r5C << " " << (double)r6C << " " << (double)r7C << " " << (double)r8C << " " << (double)r9C << " " << (double)r10C << " " << (double)r11C << " " << (double)r12C << " " << (double)r13C << " " << (double)r14C << " " << (double)r15C << " " << (double)r16C << endl;
+	//cout << (double)r1C << " " << (double)r2C << " " << (double)r3C << " " << (double)r4C << " " << (double)r5C << " " << (double)r6C << " " << (double)r7C << " " << (double)r8C << " " << (double)r9C << " " << (double)r10C << " " << (double)r11C << " " << (double)r12C << " " << (double)r13C << " " << (double)r14C << " " << (double)r15C << " " << (double)r16C << endl;
 	avgCongestion = (double)r1C + (double)r2C + (double)r3C + (double)r4C + (double)r5C + (double)r6C + (double)r7C + (double)r8C + (double)r9C + (double)r10C + (double)r11C + (double)r12C + (double)r13C + (double)r14C + (double)r15C + (double)r16C;
 	//cout << avgCongestion << endl;
 	avgCongestion /= 16;
@@ -445,20 +445,6 @@ int main()
 			}
 		}
 	}
-	for (int i = 0; i < nets.size(); i++)
-	{
-		//cout << "Net" << i << " ";
-		for (int j = 0; j < nets[0].size(); j++)
-		{
-			//cout << nets[i][j] << " ";
-		}
-		//cout << endl;
-	}
-
-	for (int i = 0; i < areas.size(); i++)
-	{
-		//cout << areas[i] << endl;
-	}
 	if (minl > 0)
 	{
 		asum /= minl;
@@ -469,14 +455,10 @@ int main()
 	{
 		maxh = (int)ceil(sqrt(maxl));
 		maxl = maxh;
-		//maxh /= minl;
-		//maxl /= minl;
 	}
 	else
 	{
 		maxh = (int)ceil((double)asum / maxl);
-		//maxh /= minl;
-		//maxl /= minl;
 	}
 	ph = (double)maxh / (maxl + maxh);
 	pl = (double)1 - ph;
@@ -489,16 +471,6 @@ int main()
 
 	nlength /= 2;
 	nwidth /= 2;
-/*
-	cout << pl << endl;
-	cout << ph << endl;
-	cout << npins << endl;
-	cout << nlength << endl;
-	cout << nwidth << endl;
-
-	cout << maxh << endl;
-	cout << npins;
-*/
 	lt = maxl;
 	ht = maxh;
 
@@ -507,7 +479,6 @@ int main()
 	for (int i = 0; i < areas.size(); i++)
 	{
 		scldwnarea.push_back(areas[i] / minl);
-		//cout << scldwnarea[i] << endl;
 	}
 	for (int i = 0; i < areas.size(); i++) //initial placement of gates only, done randomly
 	{
@@ -520,7 +491,6 @@ int main()
 		{
 			randx = rand() % (maxl - scldwnarea[i]);
 		}
-		//cout << randx << endl;
 		randy = rand() % maxh;
 		tcoord.push_back(to_string(randx));
 		tcoord.push_back(to_string(randy));
@@ -669,7 +639,7 @@ int main()
 	}
 
 	for (int i = 0; i < coord.size(); i++) {
-		if (coord[i][0].substr(1).compare("p") == 0) {
+		if (coord[i][0].substr(0).compare("p") == 0) {
 			coord[i].push_back("0");
 		}
 		else {
@@ -699,7 +669,7 @@ int main()
 	cout << endl;
 	cout << "Overlap:" << endl;
 	cout << cost2(coord, areas, minl, maxl, maxh) << endl;
-
+	
 	infil.close();
 	return 0;
 }
