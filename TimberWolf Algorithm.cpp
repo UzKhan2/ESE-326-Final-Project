@@ -6,11 +6,11 @@
 #include <string>
 using namespace std;
 
-int lt; //length perturb range limit
-int ht; //height perturb range limit
-vector <vector<string>> coord; //holds all coordinates for gates and pins
+double lt; //length perturb range limit
+double ht; //height perturb range limit
+vector<int> netLengths;
 
-void perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
+vector<vector<string>> perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
 	int choice = rand() % 2; //0 or 1 to decide on move or swap
 	int cell1 = rand() % numGates; //choose random gate
 	int cell2 = 999999;
@@ -54,21 +54,21 @@ void perturb(vector<vector<string>> chip, int height, int length, vector<int> sd
 	}
 	lt = lt * (log(tnext) / log(tcurr)); //reduce scope
 	ht = ht * (log(tnext) / log(tcurr));
-	coord = chip;
+	return chip;
 }
 
 double schedule(double T)
 {
 	double newT = T - .95;
 	if (newT < 0) {
-		return T;
+		return 0;
 	}
 	else {
 		return newT;
 	}
 }
 
-int max(vector <int> temp)
+int max(vector<int> temp)
 {
 	int max = temp[0];
 	for (int i = 1; i < temp.size(); i++)
@@ -98,7 +98,7 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 
 	for (int i = 0; i < nets.size(); i++)
 	{
-		for (int j = 0; j < nets[0].size(); j++)
+		for (int j = 0; j < nets[i].size(); j++)
 		{
 			if (nets[i][j].substr(1, nets[i][j].size() - 1).compare("p") == 0) { //if pin
 				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1)) + (areas.size()-1);
@@ -116,10 +116,12 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 		xcoord.clear();
 		ycoord.clear();
 	}
+	netLengths = net_length;
 	maxNLength = max(net_length);
 	if (c == 1)
 	{
 		avgNetLength = sum / nets.size();
+		avgNetLength /= maxNLength;
 		return avgNetLength;
 	}
 	else if (c == 5)
@@ -128,51 +130,30 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 	}
 	else {
 		cout << "Invalid select chosen" << endl;
+		return 0;
 	}
 }
 
-
 double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int length, int height) {
-	vector<vector<int>> coordsTakenUp; //if 0, free, if 1 then taken up, if 2 taken up by at least 2 cells
-	vector<int> allZeroes;
-	int overlap = 0; //number of coordinates with overlap
-	int numCoords = length * height;
-	int lenOfCell = 0;
-	int y = 0;
-	double percentOfOverlap;
+	double overlap = 0;
+	int numCoords = length * height, x = 0, y = 0, x2 = 0, y2 = 0;
 
-	for (int i = 0; i < length; i++) {
-		allZeroes.push_back(0);
-	}
-	for (int j = 0; j < height; j++) {
-		coordsTakenUp.push_back(allZeroes);
-	}
-
-	for (int k = 0; k < areas.size(); k++) {
-		lenOfCell = areas[k] / minl;
-		y = stoi(coord[k][2]);
-		for (int l = stoi(coord[k][1]); l < lenOfCell; l++) {
-			if (coordsTakenUp[l][y] == 0) {
-				coordsTakenUp[l][y] = 1; //marks as taken
+	for (int i = 0; i < areas.size(); i++) {
+		x = stoi(coord[i][1]);
+		y = stoi(coord[i][2]);
+		for (int m = 0; m < areas.size(); m++) {
+			if (m <= i) {
+				continue;
 			}
-			else {
-				coordsTakenUp[l][y] = 2; //marks as at least 2 cells took this coordinate
-			}
-		}
-	}
-
-	for (int i = 0; i < coordsTakenUp.size(); i++) { //counts all 2's. Must do this seperately because if say 3 cells use a coordinate, then an extra increment would occur if i did it in the previous loop. I only want overlap to count how many coordinates have at least 2 cells on it, not how many times it occurs
-		for (int j = 0; j < coordsTakenUp[0].size(); j++) {
-			if (coordsTakenUp[i][j] == 2) {
+			x2 = stoi(coord[m][1]);
+			y2 = stoi(coord[m][2]);
+			if ((x == x2) && (y == y2)) {
 				overlap++;
 			}
 		}
 	}
-
-	percentOfOverlap = overlap/numCoords; //% of cells with overlap
-	return percentOfOverlap;
+	return overlap / numCoords;
 }
-
 
 
 double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh) {
@@ -201,9 +182,158 @@ double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh
 	return avgRowLen;
 }
 
+double cost4(vector<vector<string>> nets, int length, int height, vector<vector<string>> coords, int numGates) {
+	double slope = 0;
+	double yint = 0; //y intercept
+	vector<vector<int>> edgeCoords;
+	vector<int> edgePoint;
+	string point1 = "", point2 = "";
+	int ind1 = 0, ind2 = 0;
+	int boundx1 = length / 4, boundx2 = length / 2, boundx3 = 3 * length / 4, boundy1 = height / 4, boundy2 = height / 2, boundy3 = 3 * height / 4;
+	int r1C = 0, r2C = 0, r3C = 0, r4C = 0, r5C = 0, r6C = 0, r7C = 0, r8C = 0, r9C = 0, r10C = 0, r11C = 0, r12C = 0, r13C = 0, r14C = 0, r15C = 0, r16C = 0; //region counts of congestion
+	double avgCongestion = 0;
+	int x = 0, y = 0;
+	bool found = false;
 
-int cost4() {
+	for (int i = 0; i < nets.size(); i++) {
+		for (int j = 0; j < nets[i].size() - 1; j++) {
+			point1 = nets[i][j];
+			point2 = nets[i][j + 1];
+			if (point1.substr(1).compare("p") == 0) {
+				ind1 = stoi(point1.substr(1, point1.length())) + (numGates - 1);
+			}
+			else {
+				ind1 = stoi(point1.substr(1, point1.length()));
+			}
 
+			if (point2.substr(1).compare("p") == 0) {
+				ind2 = stoi(point2.substr(1, point2.length())) + (numGates - 1);
+			}
+			else {
+				ind2 = stoi(point2.substr(1, point2.length()));
+			}
+
+			if (stoi(coords[ind1][1]) == stoi(coords[ind2][1])) {
+				slope = 1;
+			}
+			else {
+				slope = abs(stoi(coords[ind1][2]) - stoi(coords[ind2][2])) / abs(stoi(coords[ind1][1]) - stoi(coords[ind2][1]));
+			}
+			yint = stoi(coords[ind1][2]) - (slope * stoi(coords[ind1][1]));
+
+
+			if (stoi(coords[ind1][2]) < stoi(coords[ind2][2])) {
+				for (int k = stoi(coords[ind1][2]); k < stoi(coords[ind2][2]); k++) {
+					x = (k - yint) / slope;
+					y = k;
+					for (int q = 0; q < edgeCoords.size(); q++) {
+						if (edgeCoords[q][0] == x && edgeCoords[q][1] == y) {
+							edgeCoords[q][2]++;
+							found = true;
+							break;
+						}
+					}
+					if (found == false) {
+						edgePoint.push_back(x);
+						edgePoint.push_back(y);
+						edgePoint.push_back(1);
+						edgeCoords.push_back(edgePoint);
+						edgePoint.clear();
+					}
+					found = false;
+				}
+			}
+			else {
+				for (int k = stoi(coords[ind2][2]); k < stoi(coords[ind1][2]); k++) {
+					x = (k - yint) / slope;
+					y = k;
+					for (int q = 0; q < edgeCoords.size(); q++) {
+						if (edgeCoords[q][0] == x && edgeCoords[q][1] == y) {
+							edgeCoords[q][2]++;
+							found = true;
+							break;
+						}
+					}
+					if (found == false) {
+						edgePoint.push_back(x);
+						edgePoint.push_back(y);
+						edgePoint.push_back(1);
+						edgeCoords.push_back(edgePoint);
+						edgePoint.clear();
+					}
+					found = false;
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < edgeCoords.size(); i++) {
+		if (edgeCoords[i][2] > 1) {
+			x = edgeCoords[i][0];
+			y = edgeCoords[i][1];
+			if ((x >= 0) && (x < boundx1)) {//find and count intersections in each region
+				if ((y>= 0) && (y< boundy1)) {
+					r1C++;
+				}
+				else if ((y >= boundy1) && (y < boundy2)) {
+					r5C++;
+				}
+				else if ((y >= boundy2) && (y < boundy3)) {
+					r9C++;
+				}
+				else {
+					r13C++;
+				}
+			}
+			else if ((x>= boundx1) && (x< boundx2)) {
+				if ((y >= 0) && (y< boundy1)) {
+					r2C++;
+				}
+				else if ((y >= boundy1) && (y < boundy2)) {
+					r6C++;
+				}
+				else if ((y >= boundy2) && (y < boundy3)) {
+					r10C++;
+				}
+				else {
+					r14C++;
+				}
+			}
+			else if ((x >= boundx2) && (x < boundx3)) {
+				if ((y >= 0) && (y < boundy1)) {
+					r3C++;
+				}
+				else if ((y >= boundy1) && (y < boundy2)) {
+					r7C++;
+				}
+				else if ((y >= boundy2) && (y < boundy3)) {
+					r11C++;
+				}
+				else {
+					r15C++;
+				}
+			}
+			else {
+				if ((y >= 0) && (y < boundy1)) {
+					r4C++;
+				}
+				else if ((y >= boundy1) && (y < boundy2)) {
+					r8C++;
+				}
+				else if ((y >= boundy2) && (y < boundy3)) {
+					r12C++;
+				}
+				else {
+					r16C++;
+				}
+			}
+		}
+	}
+	cout << (double)r1C << " " << (double)r2C << " " << (double)r3C << " " << (double)r4C << " " << (double)r5C << " " << (double)r6C << " " << (double)r7C << " " << (double)r8C << " " << (double)r9C << " " << (double)r10C << " " << (double)r11C << " " << (double)r12C << " " << (double)r13C << " " << (double)r14C << " " << (double)r15C << " " << (double)r16C << endl;
+	avgCongestion = (double)r1C + (double)r2C + (double)r3C + (double)r4C + (double)r5C + (double)r6C + (double)r7C + (double)r8C + (double)r9C + (double)r10C + (double)r11C + (double)r12C + (double)r13C + (double)r14C + (double)r15C + (double)r16C;
+	//cout << avgCongestion << endl;
+	avgCongestion /= 16;
+	return avgCongestion;
 }
 
 
@@ -224,6 +354,8 @@ int main()
 	int npins = 0;	// Number of pins
 	int nlength = 0, nwidth = 0;	// Number of pins in height and length
 	int pinplc = 0;	// Pin placement location
+	double T = 1000000; //initial temperature
+	double cost = 0, newCost = 0, deltaCost = 0; 
 
 	ifstream infil(fileare);
 	vector <int> areas;
@@ -238,6 +370,8 @@ int main()
 	ifstream infile(filenet);
 	vector<vector<string>> nets;
 	vector<string> tnet;
+	vector<vector<string>> coord; //holds all coordinates for gates and pins
+	vector<vector<string>> newP; 
 
 	int pperh = 0; // Pins divided by height
 	if (!infil.is_open())
@@ -347,7 +481,7 @@ int main()
 	ph = (double)maxh / (maxl + maxh);
 	pl = (double)1 - ph;
 	npins = (int)pins.size() - 1;
-	nwidth = ceil(npins * ph);
+	nwidth = (int)ceil(npins * ph);
 	if (nwidth == 1) {
 		nwidth = 2;
 	}
@@ -355,7 +489,7 @@ int main()
 
 	nlength /= 2;
 	nwidth /= 2;
-
+/*
 	cout << pl << endl;
 	cout << ph << endl;
 	cout << npins << endl;
@@ -364,7 +498,7 @@ int main()
 
 	cout << maxh << endl;
 	cout << npins;
-
+*/
 	lt = maxl;
 	ht = maxh;
 
@@ -499,14 +633,72 @@ int main()
 		}
 	}
 
+	//*********************************************************************************************************************************************************************************************************************************************************************//
+	ofstream before;
+	before.open("InitialPlacementOutput.txt");
+	before << "Initial Placement: " << endl;
 	for (int h = 0; h < coord.size(); h++)
 	{
-		for (int r = 0; r < coord[0].size(); r++)
+		for (int r = 0; r < coord[h].size(); r++)
 		{
-			cout << coord[h][r] << " ";
+			before << coord[h][r] << " ";
 		}
-		cout << endl;
+		before << endl;
 	}
+	before.close();
+
+	int counter = 0;
+	int rnd = 0;
+	while (T > 1) {
+		counter = 0;
+		while (counter < (800 * areas.size())) {//coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
+			newP = perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
+			cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
+			newCost = cost1_5(nets, newP, areas, 1) + cost2(newP, areas, minl, maxl, maxh) + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+			deltaCost = newCost - cost;
+			rnd = rand() % 2; //0 or 1
+			if (deltaCost < 0) {
+				coord = newP;
+			}
+			else if (rnd > exp(deltaCost / T)) {
+				coord = newP;
+			}
+			counter++;
+		}
+		T = schedule(T);
+	}
+
+	for (int i = 0; i < coord.size(); i++) {
+		if (coord[i][0].substr(1).compare("p") == 0) {
+			coord[i].push_back("0");
+		}
+		else {
+			coord[i].push_back(to_string(areas[i]));
+		}
+	}
+
+	ofstream after;
+	after.open("FinalOutput.txt");
+	after << "Final Placement: " << endl;
+	for (int h = 0; h < coord.size(); h++)
+	{
+		for (int r = 0; r < coord[h].size(); r++)
+		{
+			after << coord[h][r] << " ";
+		}
+		after << endl;
+	}
+	after.close();
+
+	cost1_5(nets, coord, areas, 1);
+
+	cout << "Net Lengths:" << endl;
+	for (int i = 0; i < netLengths.size(); i++) {
+		cout << netLengths[i] << endl;
+	}
+	cout << endl;
+	cout << "Overlap:" << endl;
+	cout << cost2(coord, areas, minl, maxl, maxh) << endl;
 
 	infil.close();
 	return 0;
