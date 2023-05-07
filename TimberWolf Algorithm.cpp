@@ -8,6 +8,8 @@ using namespace std;
 
 double lt; //length perturb range limit
 double ht; //height perturb range limit
+int option;
+double lastCost2;
 vector<int> netLengths;
 
 vector<vector<string>> perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
@@ -30,6 +32,7 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 	if (choice == 0) {//Move
 		row = rand() % height; //move to random row
 		chip[cell1][2] = to_string(row);
+		option = 0;
 	}
 	else {//Swap
 		placeholderX1 = chip[cell1][1];
@@ -46,11 +49,15 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 				dFromEdge = stoi(chip[cell1][2]);
 				chip[cell1][2] = to_string(height - dFromEdge);
 			}
+			option = 2;
 		}
-		chip[cell1][1] = placeholderX2;
-		chip[cell1][2] = placeholderY2;
-		chip[cell2][1] = placeholderX1;
-		chip[cell2][2] = placeholderY1;
+		else {
+			chip[cell1][1] = placeholderX2;
+			chip[cell1][2] = placeholderY2;
+			chip[cell2][1] = placeholderX1;
+			chip[cell2][2] = placeholderY1;
+			option = 1;
+		}
 	}
 	lt = lt * (log(tnext) / log(tcurr)); //reduce scope
 	ht = ht * (log(tnext) / log(tcurr));
@@ -401,6 +408,8 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 int main()
 {
 	srand((unsigned int)time(NULL));	// Seed random generator
+	option = 0;
+	lastCost2 = 0;
 	string fileare = "ibm01.are";
 	string text;
 	int area;	// Individual area of part
@@ -416,6 +425,7 @@ int main()
 	int pinplc = 0;	// Pin placement location
 	double T = 1000000; //initial temperature
 	double cost = 0, newCost = 0, deltaCost = 0; 
+	bool changed = true;
 
 	ifstream infil(fileare);
 	vector <int> areas;
@@ -683,15 +693,28 @@ int main()
 		counter = 0;
 		while (counter < (800 * areas.size())) {//coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
 			newP = perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
-			cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
-			newCost = cost1_5(nets, newP, areas, 1) + cost2(newP, areas, minl, maxl, maxh) + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+			if (changed == true) {
+				cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
+			}
+			if (option == 1) {
+				newCost = cost1_5(nets, newP, areas, 1) + lastCost2 + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+			}
+			else {
+				lastCost2 = cost2(newP, areas, minl, maxl, maxh);
+				newCost = cost1_5(nets, newP, areas, 1) + lastCost2 + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+			}		
 			deltaCost = newCost - cost;
 			rnd = rand() % 2; //0 or 1
 			if (deltaCost < 0) {
 				coord = newP;
+				changed = true;
 			}
 			else if (rnd > exp(deltaCost / T)) {
 				coord = newP;
+				changed = true;
+			}
+			else {
+				changed = false;
 			}
 			counter++;
 		}
