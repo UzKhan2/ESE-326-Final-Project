@@ -29,7 +29,7 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 
 	if (choice == 0) {//Move
 		row = rand() % height; //move to random row
-		chip[cell1][2] = row;
+		chip[cell1][2] = to_string(row);
 	}
 	else {//Swap
 		placeholderX1 = chip[cell1][1];
@@ -105,9 +105,9 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 			}
 			else {// if gate
 				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1));
-			}		
+			}	
 			xcoord.push_back(stoi(coord[ind][1]));
-			ycoord.push_back(stoi(coord[ind][2])); //problem here
+			ycoord.push_back(stoi(coord[ind][2]));
 		}
 		rangey = max(ycoord) - min(ycoord);
 		rangex = max(xcoord) - min(xcoord);
@@ -137,24 +137,37 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int length, int height) {
 	double overlap = 0;
 	int numCoords = length * height, x = 0, y = 0, x2 = 0, y2 = 0;
+	vector<vector<int>> cor;
+	vector<int> row;
+	bool found = false;
 
 	for (int i = 0; i < areas.size(); i++) {
 		x = stoi(coord[i][1]);
 		y = stoi(coord[i][2]);
-		for (int m = 0; m < areas.size(); m++) {
-			if (m <= i) {
-				continue;
+		for (int j = 0; j < cor.size(); j++) {
+			if (cor[j][0] == x && cor[j][1] == y) {
+				cor[j][2]++;
+				found = true;
+				break;
 			}
-			x2 = stoi(coord[m][1]);
-			y2 = stoi(coord[m][2]);
-			if ((x == x2) && (y == y2)) {
-				overlap++;
-			}
+		}
+		if (found == false) {
+			row.push_back(x);
+			row.push_back(y);
+			row.push_back(1);
+			cor.push_back(row);
+			row.clear();
+		}
+		found = false;
+	}
+
+	for (int i = 0; i < cor.size(); i++) {
+		if (cor[i][2] > 1) {
+			overlap++;
 		}
 	}
 	return overlap / numCoords;
 }
-
 
 double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh) {
 	vector<int> xsofrow, rowLens;
@@ -603,7 +616,7 @@ int main()
 		}
 	}
 
-	//*********************************************************************************************************************************************************************************************************************************************************************//
+	//********************************************************************************************************************************************************************************************************************************************************************//
 	ofstream before;
 	before.open("InitialPlacementOutput.txt");
 	before << "Initial Placement: " << endl;
