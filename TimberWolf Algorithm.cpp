@@ -59,12 +59,11 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 
 double schedule(double T)
 {
-	double newT = T - .95;
-	if (newT < 0) {
-		return 0;
+	if ((T >= 0 && T < 1000000 / 3) || (T > (2/3)*1000000 && T <= 1000000)) {
+		return T - .8;
 	}
 	else {
-		return newT;
+		return T - .95;
 	}
 }
 
@@ -146,6 +145,9 @@ double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int leng
 		y = stoi(coord[i][2]);
 		for (int j = 0; j < cor.size(); j++) {
 			if (cor[j][0] == x && cor[j][1] == y) {
+				if (cor[j][2] == 1) {
+					overlap++;
+				}
 				cor[j][2]++;
 				found = true;
 				break;
@@ -159,12 +161,6 @@ double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int leng
 			row.clear();
 		}
 		found = false;
-	}
-
-	for (int i = 0; i < cor.size(); i++) {
-		if (cor[i][2] > 1) {
-			overlap++;
-		}
 	}
 	return overlap / numCoords;
 }
@@ -241,6 +237,64 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 					y = k;
 					for (int q = 0; q < edgeCoords.size(); q++) {
 						if (edgeCoords[q][0] == x && edgeCoords[q][1] == y) {
+							if (edgeCoords[q][2] == 1) {
+								if ((x >= 0) && (x < boundx1)) {//find and count intersections in each region
+									if ((y >= 0) && (y < boundy1)) {
+										r1C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r5C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r9C++;
+									}
+									else {
+										r13C++;
+									}
+								}
+								else if ((x >= boundx1) && (x < boundx2)) {
+									if ((y >= 0) && (y < boundy1)) {
+										r2C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r6C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r10C++;
+									}
+									else {
+										r14C++;
+									}
+								}
+								else if ((x >= boundx2) && (x < boundx3)) {
+									if ((y >= 0) && (y < boundy1)) {
+										r3C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r7C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r11C++;
+									}
+									else {
+										r15C++;
+									}
+								}
+								else {
+									if ((y >= 0) && (y < boundy1)) {
+										r4C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r8C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r12C++;
+									}
+									else {
+										r16C++;
+									}
+								}
+							}
 							edgeCoords[q][2]++;
 							found = true;
 							break;
@@ -262,6 +316,64 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 					y = k;
 					for (int q = 0; q < edgeCoords.size(); q++) {
 						if (edgeCoords[q][0] == x && edgeCoords[q][1] == y) {
+							if (edgeCoords[q][2] == 1) {
+								if ((x >= 0) && (x < boundx1)) {//find and count intersections in each region
+									if ((y >= 0) && (y < boundy1)) {
+										r1C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r5C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r9C++;
+									}
+									else {
+										r13C++;
+									}
+								}
+								else if ((x >= boundx1) && (x < boundx2)) {
+									if ((y >= 0) && (y < boundy1)) {
+										r2C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r6C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r10C++;
+									}
+									else {
+										r14C++;
+									}
+								}
+								else if ((x >= boundx2) && (x < boundx3)) {
+									if ((y >= 0) && (y < boundy1)) {
+										r3C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r7C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r11C++;
+									}
+									else {
+										r15C++;
+									}
+								}
+								else {
+									if ((y >= 0) && (y < boundy1)) {
+										r4C++;
+									}
+									else if ((y >= boundy1) && (y < boundy2)) {
+										r8C++;
+									}
+									else if ((y >= boundy2) && (y < boundy3)) {
+										r12C++;
+									}
+									else {
+										r16C++;
+									}
+								}
+							}
 							edgeCoords[q][2]++;
 							found = true;
 							break;
@@ -279,72 +391,7 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 			}
 		}
 	}
-
-	for (int i = 0; i < edgeCoords.size(); i++) {
-		if (edgeCoords[i][2] > 1) {
-			x = edgeCoords[i][0];
-			y = edgeCoords[i][1];
-			if ((x >= 0) && (x < boundx1)) {//find and count intersections in each region
-				if ((y>= 0) && (y< boundy1)) {
-					r1C++;
-				}
-				else if ((y >= boundy1) && (y < boundy2)) {
-					r5C++;
-				}
-				else if ((y >= boundy2) && (y < boundy3)) {
-					r9C++;
-				}
-				else {
-					r13C++;
-				}
-			}
-			else if ((x>= boundx1) && (x< boundx2)) {
-				if ((y >= 0) && (y< boundy1)) {
-					r2C++;
-				}
-				else if ((y >= boundy1) && (y < boundy2)) {
-					r6C++;
-				}
-				else if ((y >= boundy2) && (y < boundy3)) {
-					r10C++;
-				}
-				else {
-					r14C++;
-				}
-			}
-			else if ((x >= boundx2) && (x < boundx3)) {
-				if ((y >= 0) && (y < boundy1)) {
-					r3C++;
-				}
-				else if ((y >= boundy1) && (y < boundy2)) {
-					r7C++;
-				}
-				else if ((y >= boundy2) && (y < boundy3)) {
-					r11C++;
-				}
-				else {
-					r15C++;
-				}
-			}
-			else {
-				if ((y >= 0) && (y < boundy1)) {
-					r4C++;
-				}
-				else if ((y >= boundy1) && (y < boundy2)) {
-					r8C++;
-				}
-				else if ((y >= boundy2) && (y < boundy3)) {
-					r12C++;
-				}
-				else {
-					r16C++;
-				}
-			}
-		}
-	}
-	//cout << (double)r1C << " " << (double)r2C << " " << (double)r3C << " " << (double)r4C << " " << (double)r5C << " " << (double)r6C << " " << (double)r7C << " " << (double)r8C << " " << (double)r9C << " " << (double)r10C << " " << (double)r11C << " " << (double)r12C << " " << (double)r13C << " " << (double)r14C << " " << (double)r15C << " " << (double)r16C << endl;
 	avgCongestion = (double)r1C + (double)r2C + (double)r3C + (double)r4C + (double)r5C + (double)r6C + (double)r7C + (double)r8C + (double)r9C + (double)r10C + (double)r11C + (double)r12C + (double)r13C + (double)r14C + (double)r15C + (double)r16C;
-	//cout << avgCongestion << endl;
 	avgCongestion /= 16;
 	return avgCongestion;
 }
@@ -682,7 +729,7 @@ int main()
 	cout << endl;
 	cout << "Overlap:" << endl;
 	cout << cost2(coord, areas, minl, maxl, maxh) << endl;
-	
+
 	infil.close();
 	return 0;
 }
