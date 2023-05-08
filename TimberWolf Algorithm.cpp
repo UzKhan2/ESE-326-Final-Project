@@ -10,6 +10,9 @@ double lt; //length perturb range limit
 double ht; //height perturb range limit
 int option;
 double lastCost2;
+double prevLastCost2;
+vector<int> cell1Coords, prevCell1Coords;
+vector<vector<int>> cor;
 vector<int> netLengths;
 
 vector<vector<string>> perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
@@ -27,11 +30,15 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 	int dFromEdge = 0;
 	double tcurr = T;
 	double tnext = T - .95;
+	prevCell1Coords.push_back(stoi(chip[cell1][1]));
+	prevCell1Coords.push_back(stoi(chip[cell1][2]));
 
 
 	if (choice == 0) {//Move
 		row = rand() % height; //move to random row
 		chip[cell1][2] = to_string(row);
+		cell1Coords.push_back(stoi(chip[cell1][1]));
+		cell1Coords.push_back(row);
 		option = 0;
 	}
 	else {//Swap
@@ -40,7 +47,7 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 		placeholderX2 = chip[cell2][1];
 		placeholderY2 = chip[cell2][2];
 
-		if (((len2 + stoi(chip[cell1][1])) > length) || ((len1 + stoi(chip[cell2][1])) > length)) { //if the new x coordinate makes either of the gates go over the right wall of the chip, then can't swap and must mirror
+		if (((len2 + stoi(chip[cell1][1])) > length) || ((len1 + stoi(chip[cell2][1])) > length)) { //mirror. if the new x coordinate makes either of the gates go over the right wall of the chip, then can't swap and must mirror
 			if (stoi(chip[cell1][2]) > (height / 2)) {
 				dFromEdge = height - stoi(chip[cell1][2]);
 				chip[cell1][2] = to_string(dFromEdge);
@@ -49,6 +56,8 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 				dFromEdge = stoi(chip[cell1][2]);
 				chip[cell1][2] = to_string(height - dFromEdge);
 			}
+			cell1Coords.push_back(stoi(chip[cell1][1]));
+			cell1Coords.push_back(stoi(chip[cell1][2]));
 			option = 2;
 		}
 		else {
@@ -56,6 +65,8 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 			chip[cell1][2] = placeholderY2;
 			chip[cell2][1] = placeholderX1;
 			chip[cell2][2] = placeholderY1;
+			cell1Coords.push_back(stoi(chip[cell1][1]));
+			cell1Coords.push_back(stoi(chip[cell1][2]));
 			option = 1;
 		}
 	}
@@ -142,8 +153,7 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 
 double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int length, int height) {
 	double overlap = 0;
-	int numCoords = length * height, x = 0, y = 0, x2 = 0, y2 = 0;
-	vector<vector<int>> cor;
+	int numCoords = length * height, x = 0, y = 0;
 	vector<int> row;
 	bool found = false;
 
@@ -169,7 +179,56 @@ double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int leng
 		}
 		found = false;
 	}
+	lastCost2 = overlap / numCoords;
+	prevLastCost2 = lastCost2;
 	return overlap / numCoords;
+}
+
+double newCost2(int length, int height) {
+	int numCoords = length * height, x = cell1Coords[0], y = cell1Coords[1], px = prevCell1Coords[0], py = prevCell1Coords[1];
+	vector<int> tempCor;
+	bool foundNew = false;
+	if (option == 1) {
+		return lastCost2;
+	}
+	lastCost2 = lastCost2 * numCoords;
+	for (int j = 0; j < cor.size(); j++) {
+		if (cor[j][0] == px && cor[j][1] == py && px == x && py == y) {
+			return lastCost2;
+		}
+		else if (cor[j][0] == px && cor[j][1] == py) {
+			if (cor[j][2] > 2) {
+				cor[j][2]--;
+			}
+			else if (cor[j][2] == 2) {
+				cor[j][2]--;
+				lastCost2--;
+			}
+			else {
+				//cor[j].clear();
+				cor.erase(cor.begin() + j);
+			}
+		}
+		else if (cor[j][0] == x && cor[j][1] == y) {
+			if (cor[j][2] == 1) {
+				lastCost2++;
+				cor[j][2]++;
+			}
+			else {
+				cor[j][2]++;
+			}
+			foundNew = true;
+		}
+		else if (j == (cor.size() - 1) && foundNew == false) {
+			tempCor.push_back(x);
+			tempCor.push_back(y);
+			tempCor.push_back(1);
+			cor.push_back(tempCor);
+			tempCor.clear();
+		}
+	}
+	lastCost2 /= numCoords;
+	return lastCost2;
 }
 
 double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh) {
@@ -201,6 +260,7 @@ double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh
 double cost4(vector<vector<string>> nets, int length, int height, vector<vector<string>> coords, int numGates) {
 	double slope = 0;
 	double yint = 0; //y intercept
+	lastCost2 = 0, prevLastCost2 = 0;
 	vector<vector<int>> edgeCoords;
 	vector<int> edgePoint;
 	string point1 = "", point2 = "";
@@ -674,6 +734,7 @@ int main()
 	}
 
 	//********************************************************************************************************************************************************************************************************************************************************************//
+	
 	ofstream before;
 	before.open("InitialPlacementOutput.txt");
 	before << "Initial Placement: " << endl;
@@ -689,36 +750,35 @@ int main()
 
 	int counter = 0;
 	int rnd = 0;
+	cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
 	while (T > 1) {
 		counter = 0;
-		while (counter < (800 * areas.size())) {//coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
+		while (counter < (areas.size() / 500)) {//coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
 			newP = perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
 			if (changed == true) {
-				cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
+				cost = newCost;
 			}
-			if (option == 1) {
-				newCost = cost1_5(nets, newP, areas, 1) + lastCost2 + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
-			}
-			else {
-				lastCost2 = cost2(newP, areas, minl, maxl, maxh);
-				newCost = cost1_5(nets, newP, areas, 1) + lastCost2 + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
-			}		
+			newCost = cost1_5(nets, newP, areas, 1) + newCost2(maxl, maxh) + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
 			deltaCost = newCost - cost;
 			rnd = rand() % 2; //0 or 1
 			if (deltaCost < 0) {
 				coord = newP;
 				changed = true;
+				prevLastCost2 = lastCost2;
 			}
 			else if (rnd > exp(deltaCost / T)) {
 				coord = newP;
 				changed = true;
+				prevLastCost2 = lastCost2;
 			}
 			else {
+				lastCost2 = prevLastCost2; //restore lastCost2 since cost didn't change so neither should lastCost2
 				changed = false;
 			}
 			counter++;
 		}
-		T = schedule(T);
+		//T = schedule(T);
+		T -= .95;
 	}
 
 	for (int i = 0; i < coord.size(); i++) {
@@ -751,8 +811,18 @@ int main()
 	}
 	cout << endl;
 	cout << "Overlap:" << endl;
+	cout << newCost2(maxl, maxh) << endl;
+	
+	/*
+	perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
 	cout << cost2(coord, areas, minl, maxl, maxh) << endl;
-
+	cout << newCost2(maxl, maxh) << endl;
+	cout << lastCost2 << endl;
+	perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
+	cout << cost2(coord, areas, minl, maxl, maxh) << endl;
+	cout << newCost2(maxl, maxh) << endl;
+	cout << lastCost2 << endl;
+	*/
 	infil.close();
 	return 0;
 }
