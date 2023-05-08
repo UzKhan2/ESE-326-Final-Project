@@ -79,9 +79,17 @@ int main()
 		{
 			infile >> arg1;
 			infile >> arg2;
+			char first = arg1.front();
+			
+			 
 			string str_num = arg1.substr(1); 
 			int num = stoi(str_num);
 			if (num > 1000) {
+				//test.push_back(arg1);
+				flag = true;
+			}
+
+			if (first == 'p' && num > 50) {
 				//test.push_back(arg1);
 				flag = true;
 			}
