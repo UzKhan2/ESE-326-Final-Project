@@ -102,7 +102,6 @@ int main()
 					if (flag == true)
 					{
 						remove.push_back(tnet);
-
 						flag = false;
 					}
 					else
@@ -120,7 +119,7 @@ int main()
 			}
 		}
 	}
-	cout << nets.size() << endl << remove.size();
+	//cout << nets.size() << endl << remove.size();
 	for (int i = 0; i < nets.size(); i++)
 	{
 		//cout << "Net" << i << " ";
@@ -146,15 +145,21 @@ int main()
 
 	////////////////////////////////////////////////////////////////
 
-	for (int i = 0; i < areas.size(); i++)
+	for (int i = 0; i < 5; i++)
 	{
-		outputFile2 << "a" << i << " " << areas[i] << endl;
+		outputFile2 << "0" << endl;
 	}
 
-	for (int i = 0; i < pins.size(); i++)
+	for (int i = 0; i < nets.size(); i++)
 	{
-		outputFile2 << pins[i] << " 0" << endl;
+		outputFile1 << nets[i][1] << " s 1" << endl;
+		for (int j = 1; j < nets[i].size(); j++)
+		{
+			outputFile1 << nets[i][j] << " l" << endl;
+		}
+		outputFile1 << endl;
+		
 	}
-	
+	cout << "Completed";
 	return 0;
 }
