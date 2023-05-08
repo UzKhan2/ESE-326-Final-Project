@@ -152,13 +152,11 @@ int main()
 
 	for (int i = 0; i < nets.size(); i++)
 	{
-		outputFile1 << nets[i][1] << " s 1" << endl;
+		outputFile2 << nets[i][1] << " s 1" << endl;
 		for (int j = 1; j < nets[i].size(); j++)
 		{
-			outputFile1 << nets[i][j] << " l" << endl;
+			outputFile2 << nets[i][j] << " l" << endl;
 		}
-		outputFile1 << endl;
-		
 	}
 	cout << "Completed";
 	return 0;
