@@ -10,28 +10,28 @@ double lt; //length perturb range limit
 double ht; //height perturb range limit
 double tChecker; //just allows me to check on T while running. If I pause, I can see T's value even when not in the main functions scope
 int option; //tracks which 
-double lastCost2;
-double prevLastCost2;
-vector<int> cell1Coords, prevCell1Coords;
-vector<vector<int>> cor;
-vector<int> netLengths;
+double lastCost2; //the last cost2 calculated
+double prevLastCost2; //a restore for lastCost2. Since it changes every time the newCost2 function runs, but the newP won't always be accepted, this restores lastCost2 in that case
+vector<int> cell1Coords, prevCell1Coords; //holds the coordinates of the gate whose coordinates are changed during perturb. The coordinates before and after the change
+vector<vector<int>> cor; //a list of every unique coordinate and how many times they appear in the list of all coordinates
+vector<int> netLengths; //a list of every edge between gates/pins in nets
 
-vector<vector<string>> perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
+vector<vector<string>> perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //move, swap, or mirror a random gate
 	int choice = rand() % 2; //0 or 1 to decide on move or swap
 	int cell1 = rand() % numGates; //choose random gate
-	int cell2 = 999999;
+	int cell2 = 999999; //a large value the random function wouldn't generate
 	while ((cell2 == 999999) || (stoi(chip[cell2][1]) > (stoi(chip[cell1][1]) + (lt / 2))) || (stoi(chip[cell2][1]) < (stoi(chip[cell1][1]) - (lt / 2))) || (stoi(chip[cell2][2]) > (stoi(chip[cell1][2]) + (ht / 2))) || (stoi(chip[cell2][2]) < (stoi(chip[cell1][2]) - (ht / 2)))) {
 		//hasn't changed				goes past right range wall								goes past left range wall										goes past top wall														goes under bottom wall
 		cell2 = rand() % numGates; //keep looking for a cell until it is within the scope
 	}
 	int row = 0;
-	string placeholderX1, placeholderY1, placeholderX2, placeholderY2;
+	string placeholderX1, placeholderY1, placeholderX2, placeholderY2; //used for swapping coordinates
 	int len1 = areas[cell1] / lcd; //length of gate1
 	int len2 = areas[cell2] / lcd; //length of gate2
-	int dFromEdge = 0;
-	double tcurr = T;
-	double tnext = T - .95;
-	prevCell1Coords.push_back(stoi(chip[cell1][1]));
+	int dFromEdge = 0; //distance from closest edge. either top of the chip or bottom
+	double tcurr = T; //current temperature
+	double tnext = T - .95; //next temperature
+	prevCell1Coords.push_back(stoi(chip[cell1][1]));//save the old coordinates of the chosen gate to be moved
 	prevCell1Coords.push_back(stoi(chip[cell1][2]));
 
 
@@ -42,14 +42,14 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 		cell1Coords.push_back(row);
 		option = 0;
 	}
-	else {//Swap
-		placeholderX1 = chip[cell1][1];
+	else {//Swap or mirror
+		placeholderX1 = chip[cell1][1];//save the coordinates of the 2 cells to be swapped in their placeholders
 		placeholderY1 = chip[cell1][2];
 		placeholderX2 = chip[cell2][1];
 		placeholderY2 = chip[cell2][2];
 
 		if (((len2 + stoi(chip[cell1][1])) > length) || ((len1 + stoi(chip[cell2][1])) > length)) { //mirror. if the new x coordinate makes either of the gates go over the right wall of the chip, then can't swap and must mirror
-			if (stoi(chip[cell1][2]) > (height / 2)) {
+			if (stoi(chip[cell1][2]) > (height / 2)) {//depending on which vertical half of the chip the coordinate is, finds the distance from the closer of the top and bottom of the chip and uses that to find the mirrored coordinate on the other half of the chip and sets the y coordinate to that
 				dFromEdge = height - stoi(chip[cell1][2]);
 				chip[cell1][2] = to_string(dFromEdge);
 			}
@@ -61,7 +61,7 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 			cell1Coords.push_back(stoi(chip[cell1][2]));
 			option = 2;
 		}
-		else {
+		else {//swaps the x and y coordinates of the 2 selected gates
 			chip[cell1][1] = placeholderX2;
 			chip[cell1][2] = placeholderY2;
 			chip[cell2][1] = placeholderX1;
@@ -71,8 +71,8 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 			option = 1;
 		}
 	}
-	if (tcurr > 1 && tnext > 1) {
-		lt = lt * (log(tnext) / log(tcurr)); //reduce scope
+	if (tcurr > 1 && tnext > 1) { //reduces the scope of the window for selecting a cell. Must stay above 1 as 1 and below produces 0 and negative values
+		lt = lt * (log(tnext) / log(tcurr)); 
 		ht = ht * (log(tnext) / log(tcurr));
 	}
 	return chip;
@@ -80,15 +80,15 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 
 double schedule(double T)
 {
-	if ((T >= 0 && T < 1000000 / 3) || (T > (2/3)*1000000 && T <= 1000000)) {
+	if ((T >= 0 && T < 1000000 / 3) || (T > (2/3)*1000000 && T <= 1000000)) {//for low and high temperatures, the temperature is reduced by .8
 		return T - .8;
 	}
-	else {
+	else {// for middling temperatures, the temperature is reduced by .95
 		return T - .95;
 	}
 }
 
-int max(vector<int> temp)
+int max(vector<int> temp)//returns the largest value in a vector
 {
 	int max = temp[0];
 	for (int i = 1; i < temp.size(); i++)
@@ -98,7 +98,7 @@ int max(vector<int> temp)
 	return max;
 }
 
-int min(vector <int> temp)
+int min(vector <int> temp)//returns the smallest value in a vector
 {
 	int min = temp[0];
 	for (int i = 1; i < temp.size(); i++)
@@ -111,41 +111,44 @@ int min(vector <int> temp)
 double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector<int> areas, int c)	// Length Cost and Critical Net cost. Determined by c, the select
 {
 	int rangey = 0, rangex = 0, ind = 0, sum = 0;
-	double maxNLength = 0, avgNetLength = 0;
-	vector <int> xcoord;
-	vector <int> ycoord;
-	vector <int> net_length;
+	double maxNLength = 0, avgNetLength = 0;//largest net and average net length
+	vector <int> xcoord;//stores all x coordinates of gates/pins in a net
+	vector <int> ycoord;//stores all y coordinates of gates/pins in a net
+	vector <int> net_length;//stores all net lengths
 
 	for (int i = 0; i < nets.size(); i++)
 	{
-		for (int j = 0; j < nets[i].size(); j++)
+		for (int j = 0; j < nets[i].size(); j++)//for every pin/gate in every net
 		{
 			if (nets[i][j].substr(0).compare("p") == 0) { //if pin
-				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1)) + (areas.size()-1);
+				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1)) + (areas.size()-1);//index to find coordinate of the pin
 			}
 			else {// if gate
-				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1));
+				ind = stoi(nets[i][j].substr(1, nets[i][j].size() - 1));//index to find coordinate of the gate
 			}	
-			xcoord.push_back(stoi(coord[ind][1]));
+			xcoord.push_back(stoi(coord[ind][1]));//store x and y coordinates 
 			ycoord.push_back(stoi(coord[ind][2]));
 		}
-		rangey = max(ycoord) - min(ycoord);
+		rangey = max(ycoord) - min(ycoord);//these ranges represent the height and length of the net bounding box. The net length is half the perimeter, or just the length+height
 		rangex = max(xcoord) - min(xcoord);
-		net_length.push_back(rangey + rangex);
-		sum += rangey + rangex;
+		net_length.push_back(rangey + rangex);//save net length
+		sum += rangey + rangex;//summing net length to later find the average
 		xcoord.clear();
 		ycoord.clear();
 	}
-	netLengths = net_length;
-	maxNLength = max(net_length);
-	if (c == 1)
+	netLengths = net_length;//to show the net lengths at the end of the algorithm after the final iteration
+	maxNLength = max(net_length);//the critical net
+	
+	if (c == 1)//these are selects. since this function can easily do costs 1 and 5, the select determines which value to return. 1 is average net length, so cost 1
 	{
 		avgNetLength = sum / nets.size();
 		avgNetLength /= maxNLength;
+		cout << "avgnetlength: " << avgNetLength << endl;
 		return avgNetLength;
 	}
-	else if (c == 5)
+	else if (c == 5)//this is cost 5, the critical net
 	{
+		cout << "maxNLength: " << maxNLength << endl;
 		return maxNLength;
 	}
 	else {
@@ -154,7 +157,7 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 	}
 }
 
-double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int length, int height) {
+double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int length, int height) {//
 	double overlap = 0;
 	int numCoords = length * height, x = 0, y = 0;
 	vector<int> row;
@@ -192,27 +195,31 @@ double newCost2(int length, int height) {
 	vector<int> tempCor;
 	bool foundNew = false;
 	if (option == 1) {
+		cout << "lastCost2: " << lastCost2 << endl;
 		return lastCost2;
 	}
 	lastCost2 = lastCost2 * numCoords;
 	for (int j = 0; j < cor.size(); j++) {
 		if (cor[j][0] == px && cor[j][1] == py && px == x && py == y) {
 			return lastCost2;
+			cout << "a0" << endl;
 		}
 		else if (cor[j][0] == px && cor[j][1] == py) {
+			cout << "a1" << endl;
 			if (cor[j][2] > 2) {
 				cor[j][2]--;
+				
 			}
 			else if (cor[j][2] == 2) {
 				cor[j][2]--;
 				lastCost2--;
 			}
 			else {
-				//cor[j].clear();
 				cor.erase(cor.begin() + j);
 			}
 		}
 		else if (cor[j][0] == x && cor[j][1] == y) {
+			cout << "a2" << endl;
 			if (cor[j][2] == 1) {
 				lastCost2++;
 				cor[j][2]++;
@@ -223,6 +230,7 @@ double newCost2(int length, int height) {
 			foundNew = true;
 		}
 		else if (j == (cor.size() - 1) && foundNew == false) {
+			cout << "a3" << endl;
 			tempCor.push_back(x);
 			tempCor.push_back(y);
 			tempCor.push_back(1);
@@ -231,10 +239,11 @@ double newCost2(int length, int height) {
 		}
 	}
 	lastCost2 /= numCoords;
+	cout << "lastCost2: " << lastCost2 << endl;
 	return lastCost2;
 }
 
-double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh) {
+double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh, int maxl) {
 	vector<int> xsofrow, rowLens;
 	int minx = 0, maxx = 0, range = 0;
 
@@ -256,7 +265,8 @@ double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh
 		avgRowLen += rowLens[k];
 	}
 	avgRowLen /= rowLens.size();
-
+	avgRowLen /= maxl;
+	cout << "avgRowLen: " << avgRowLen << endl;
 	return avgRowLen;
 }
 
@@ -463,6 +473,7 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 	}
 	avgCongestion = (double)r1C + (double)r2C + (double)r3C + (double)r4C + (double)r5C + (double)r6C + (double)r7C + (double)r8C + (double)r9C + (double)r10C + (double)r11C + (double)r12C + (double)r13C + (double)r14C + (double)r15C + (double)r16C;
 	avgCongestion /= 16;
+	cout << "avgCongestion: " << avgCongestion << endl;
 	return avgCongestion;
 }
 
@@ -487,7 +498,7 @@ int main()
 	int nlength = 0, nwidth = 0;	// Number of pins in height and length
 	int pinplc = 0;	// Pin placement location
 	double cost = 0, newCost = 0, deltaCost = 0; 
-	bool changed = true;
+	bool changed = false;
 
 	ifstream infil(fileare);
 	vector <int> areas;
@@ -605,7 +616,6 @@ int main()
 	nwidth /= 2;
 	lt = maxl;
 	ht = maxh;
-
 
 	int randx = 0, randy = 0;
 
@@ -738,6 +748,8 @@ int main()
 
 	//********************************************************************************************************************************************************************************************************************************************************************//
 	
+	
+
 	ofstream before;
 	before.open("InitialPlacementOutput.txt");
 	before << "Initial Placement: " << endl;
@@ -752,10 +764,12 @@ int main()
 	before.close();
 
 	double T = 100000; //initial temperature
+	
 	tChecker = T;
 	int counter = 0;
 	int rnd = 0;
-	cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
+	cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
+	cout << "cost: " << cost << endl;
 	while (T > 1) {
 		counter = 0;
 		while (counter < (areas.size() / 500)) {//coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
@@ -763,7 +777,9 @@ int main()
 			if (changed == true) {
 				cost = newCost;
 			}
-			newCost = cost1_5(nets, newP, areas, 1) + newCost2(maxl, maxh) + cost3(newP, areas, minl, maxh) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+			newCost = cost1_5(nets, newP, areas, 1) + newCost2(maxl, maxh) + cost3(newP, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+			cout << "cost: " << cost << endl;
+			cout << "newCost: " << newCost << endl;
 			deltaCost = newCost - cost;
 			rnd = rand() % 2; //0 or 1
 			if (deltaCost < 0) {
@@ -798,7 +814,8 @@ int main()
 	}
 	ofstream after;
 	after.open("FinalOutput.txt");
-	after << "Final Placement: " << endl;
+	after << minl*maxl << endl;
+	after << minl*maxh << endl;
 	for (int h = 0; h < coord.size(); h++)
 	{
 		for (int r = 0; r < coord[h].size(); r++)
@@ -819,6 +836,21 @@ int main()
 	cout << "Overlap:" << endl;
 	cout << newCost2(maxl, maxh) << endl;
 	
+	/* HERE FOR TESTING PURPOSES
+	for (int i = 0; i < 10; i++) {
+		newP = perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
+		newCost = cost1_5(nets, newP, areas, 1) + newCost2(maxl, maxh) + cost3(newP, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+		cout << "newCost: " << newCost << endl;
+		cout << "option: " << option << endl;
+	}
+
+	//for (int i = 0; i < coord.size(); i++) {
+	//	if (stoi(coord[i][2]) != stoi(newP[i][2])) {
+	//		cout << "difference found" << endl;
+	//	}
+	//}
+	*/
+
 	infil.close();
 	return 0;
 }
