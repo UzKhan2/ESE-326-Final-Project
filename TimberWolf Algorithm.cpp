@@ -8,7 +8,8 @@ using namespace std;
 
 double lt; //length perturb range limit
 double ht; //height perturb range limit
-int option;
+double tChecker; //just allows me to check on T while running. If I pause, I can see T's value even when not in the main functions scope
+int option; //tracks which 
 double lastCost2;
 double prevLastCost2;
 vector<int> cell1Coords, prevCell1Coords;
@@ -70,8 +71,10 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 			option = 1;
 		}
 	}
-	lt = lt * (log(tnext) / log(tcurr)); //reduce scope
-	ht = ht * (log(tnext) / log(tcurr));
+	if (tcurr > 1 && tnext > 1) {
+		lt = lt * (log(tnext) / log(tcurr)); //reduce scope
+		ht = ht * (log(tnext) / log(tcurr));
+	}
 	return chip;
 }
 
@@ -483,7 +486,6 @@ int main()
 	int npins = 0;	// Number of pins
 	int nlength = 0, nwidth = 0;	// Number of pins in height and length
 	int pinplc = 0;	// Pin placement location
-	double T = 1000000; //initial temperature
 	double cost = 0, newCost = 0, deltaCost = 0; 
 	bool changed = true;
 
@@ -594,8 +596,8 @@ int main()
 	pl = (double)1 - ph;
 	npins = (int)pins.size() - 1;
 	nwidth = (int)ceil(npins * ph);
-	if (nwidth == 1) {
-		nwidth = 2;
+	if (nwidth % 2 != 0) {
+		nwidth++;
 	}
 	nlength = npins - nwidth;
 
@@ -603,6 +605,7 @@ int main()
 	nwidth /= 2;
 	lt = maxl;
 	ht = maxh;
+
 
 	int randx = 0, randy = 0;
 
@@ -748,6 +751,8 @@ int main()
 	}
 	before.close();
 
+	double T = 100000; //initial temperature
+	tChecker = T;
 	int counter = 0;
 	int rnd = 0;
 	cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
@@ -779,17 +784,18 @@ int main()
 		}
 		//T = schedule(T);
 		T -= .95;
+		tChecker = T;
 	}
 
 	for (int i = 0; i < coord.size(); i++) {
-		if (coord[i][0].substr(0).compare("p") == 0) {
+		
+		if (i > areas.size()-1) {
 			coord[i].push_back("0");
 		}
 		else {
 			coord[i].push_back(to_string(areas[i]));
 		}
 	}
-
 	ofstream after;
 	after.open("FinalOutput.txt");
 	after << "Final Placement: " << endl;
@@ -813,16 +819,6 @@ int main()
 	cout << "Overlap:" << endl;
 	cout << newCost2(maxl, maxh) << endl;
 	
-	/*
-	perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
-	cout << cost2(coord, areas, minl, maxl, maxh) << endl;
-	cout << newCost2(maxl, maxh) << endl;
-	cout << lastCost2 << endl;
-	perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
-	cout << cost2(coord, areas, minl, maxl, maxh) << endl;
-	cout << newCost2(maxl, maxh) << endl;
-	cout << lastCost2 << endl;
-	*/
 	infil.close();
 	return 0;
 }
