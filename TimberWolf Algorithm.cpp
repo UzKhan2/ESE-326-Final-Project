@@ -22,7 +22,7 @@ vector<vector<string>> perturb(vector<vector<string>> chip, int height, int leng
 	int cell1 = rand() % numGates; //choose random gate
 	int cell2 = 999999; //a large value the random function wouldn't generate
 	while ((cell2 == 999999) || (stoi(chip[cell2][1]) > (stoi(chip[cell1][1]) + (lt / 2))) || (stoi(chip[cell2][1]) < (stoi(chip[cell1][1]) - (lt / 2))) || (stoi(chip[cell2][2]) > (stoi(chip[cell1][2]) + (ht / 2))) || (stoi(chip[cell2][2]) < (stoi(chip[cell1][2]) - (ht / 2)))) {
-		//hasn't changed				goes past right range wall								goes past left range wall										goes past top wall														goes under bottom wall
+		//hasn't changed	goes past right range wall						goes past left range wall						goes past top wall				goes under bottom wall
 		cell2 = rand() % numGates; //keep looking for a cell until it is within the scope
 	}
 	int row = 0;
