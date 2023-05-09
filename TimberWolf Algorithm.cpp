@@ -14,6 +14,7 @@ double lastCost2; //the last cost2 calculated
 double prevLastCost2; //a restore for lastCost2. Since it changes every time the newCost2 function runs, but the newP won't always be accepted, this restores lastCost2 in that case
 vector<int> cell1Coords, prevCell1Coords; //holds the coordinates of the gate whose coordinates are changed during perturb. The coordinates before and after the change
 vector<vector<int>> cor; //a list of every unique coordinate and how many times they appear in the list of all coordinates
+vector<vector<int>> restoreCor; //saves cor before changes from newCost2 so if the newP isn't accepted, cor can be reverted
 vector<int> netLengths; //a list of every edge between gates/pins in nets
 
 vector<vector<string>> perturb(vector<vector<string>> chip, int height, int length, vector<int> sda, int numGates, vector<int> areas, int lcd, double T) { //move, swap, or mirror a random gate
@@ -157,79 +158,80 @@ double cost1_5(vector<vector<string>> nets, vector<vector<string>> coord, vector
 	}
 }
 
-double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int length, int height) {//
+double cost2(vector<vector<string>> coord, vector<int> areas, int minl, int length, int height) {//overlap cost, but only used once, when calculating the initial placement cost
 	double overlap = 0;
 	int numCoords = length * height, x = 0, y = 0;
 	vector<int> row;
-	bool found = false;
+	bool found = false;//represents if a coordinate is already in the lsit of coordinates, and so it overlaps that coordinate
 
-	for (int i = 0; i < areas.size(); i++) {
-		x = stoi(coord[i][1]);
+	for (int i = 0; i < areas.size(); i++) {//for every gate
+		x = stoi(coord[i][1]);//store their coordinates
 		y = stoi(coord[i][2]);
-		for (int j = 0; j < cor.size(); j++) {
-			if (cor[j][0] == x && cor[j][1] == y) {
-				if (cor[j][2] == 1) {
-					overlap++;
+		for (int j = 0; j < cor.size(); j++) {//for every row in the list of coordinates, cor
+			if (cor[j][0] == x && cor[j][1] == y) {//if the coordinate is found in the list
+				if (cor[j][2] == 1) {//and it's only there once
+					overlap++;//increase the overlap count
 				}
-				cor[j][2]++;
-				found = true;
-				break;
+				cor[j][2]++;//increase the count of how many gates are on that coordinate
+				found = true;//indicate the coordinate was already in the list
+				break;//now that it's been found, no need to check the rest of the list
 			}
 		}
-		if (found == false) {
+		if (found == false) {//if not found, add it to the list with an appearnace count of 1
 			row.push_back(x);
 			row.push_back(y);
 			row.push_back(1);
 			cor.push_back(row);
 			row.clear();
 		}
-		found = false;
+		found = false;//if found is true, it skips the adding to the list part, but now found must be reset for the next iteration
 	}
-	lastCost2 = overlap / numCoords;
-	prevLastCost2 = lastCost2;
+	lastCost2 = overlap / numCoords; //the number of overlapped coordinates/the number of possible coordinates
+	prevLastCost2 = lastCost2;//these 2 lines before return are giving these variables their initial value of the overlap of the initial placement
 	return overlap / numCoords;
 }
 
-double newCost2(int length, int height) {
-	int numCoords = length * height, x = cell1Coords[0], y = cell1Coords[1], px = prevCell1Coords[0], py = prevCell1Coords[1];
+double newCost2(int length, int height) {//overlap cost, only for calculating newCost. Only adjusts cor for the change from perturb so the entire overlap of the chip doesn't have to be calculated every time, just what changed
+	int numCoords = length * height, x = cell1Coords[0], y = cell1Coords[1], px = prevCell1Coords[0], py = prevCell1Coords[1];//max number of coordinates, then the xy coordinates for the gate changed by perturb, the coordinates before the change and after
+	restoreCor = cor;//save cor before changing it for possible restoration later
 	vector<int> tempCor;
-	bool foundNew = false;
-	if (option == 1) {
+	bool foundNew = false;//tracks if the coordinate thatthe gate was changed to is already in cor or not
+	if (option == 1) {//if a swap occurs, overlap doesn't change
 		cout << "lastCost2: " << lastCost2 << endl;
 		return lastCost2;
 	}
-	lastCost2 = lastCost2 * numCoords;
-	for (int j = 0; j < cor.size(); j++) {
-		if (cor[j][0] == px && cor[j][1] == py && px == x && py == y) {
+	lastCost2 = lastCost2 * numCoords;//remove the divided out number of coordinates so lastCost2 is the number of overlapped coordinates
+	for (int j = 0; j < cor.size(); j++) {//for every coordinate in cor
+		if (cor[j][0] == px && cor[j][1] == py && px == x && py == y) {//if the coordinate the gate was mvoed to is the same as where it was, the overlap didn't change
 			return lastCost2;
 			cout << "a0" << endl;
 		}
-		else if (cor[j][0] == px && cor[j][1] == py) {
+		else if (cor[j][0] == px && cor[j][1] == py) {// if the previous location of the gate is in cor
 			cout << "a1" << endl;
-			if (cor[j][2] > 2) {
+			if (cor[j][2] > 2) {//if the appearance count is over 2, removing 1 will still make the count greater than 1 so overlap is still occuring there so the overlap count doesn't have to be decreased, just the appearance count
 				cor[j][2]--;
 				
 			}
-			else if (cor[j][2] == 2) {
+			else if (cor[j][2] == 2) {//if the appearance count is 2, then now that the gate moved, the count becomes 1, which means there's no longer overlap there and so the overlap count and appearance account are decremeneted by 1
 				cor[j][2]--;
 				lastCost2--;
 			}
-			else {
+			else {//if the attendance count is 1 (can't be any value less than 1) then the gate's previous coordinate is the only instance of that coordinate and so by moving the gate, that coordinate is gone and so it has to be removed from cor
 				cor.erase(cor.begin() + j);
 			}
 		}
-		else if (cor[j][0] == x && cor[j][1] == y) {
+		else if (cor[j][0] == x && cor[j][1] == y) {//if the coordinate that the gate mvoed to is found
 			cout << "a2" << endl;
-			if (cor[j][2] == 1) {
+			if (cor[j][2] == 1) {//and there's already another gate there, but only 1, increase overlap count by 1 and the appearance count
 				lastCost2++;
 				cor[j][2]++;
 			}
-			else {
+			else {//otherwise the coordinate is already considered in the overlap count and so no need to increase overlap, just the appearance count
 				cor[j][2]++;
 			}
-			foundNew = true;
+			foundNew = true;//if found, then no need to add it
 		}
-		else if (j == (cor.size() - 1) && foundNew == false) {
+		else if (j == (cor.size() - 1) && foundNew == false) {//if the coordinate of the new location is not found by the end of cor, it is not in cor and must be added
 			cout << "a3" << endl;
 			tempCor.push_back(x);
 			tempCor.push_back(y);
@@ -243,82 +245,81 @@ double newCost2(int length, int height) {
 	return lastCost2;
 }
 
-double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh, int maxl) {
+double cost3(vector<vector<string>> coord, vector<int> areas, int minl, int maxh, int maxl) {//average row length
 	vector<int> xsofrow, rowLens;
 	int minx = 0, maxx = 0, range = 0;
 
-	for (int j = 0; j < maxh; j++) {
-		for (int i = 0; i < areas.size(); i++) {
-			if (stoi(coord[i][2]) == j) {
+	for (int j = 0; j < maxh; j++) {//for every row on the chip
+		for (int i = 0; i < areas.size(); i++) {//for every gate
+			if (stoi(coord[i][2]) == j) {// if a gate exists on that row of the chip, it's s value is added to a vector that tracks them all
 				xsofrow.push_back(stoi(coord[i][1]));
 			}
 		}
-		maxx = max(xsofrow);
-		minx = min(xsofrow);
-		range = maxx - minx;
-		rowLens.push_back(range);
+		maxx = max(xsofrow);//finds the largest x value in the row
+		minx = min(xsofrow);//finds the smallest x value of the row
+		range = maxx - minx;//the range of the x values is the length of the row
+		rowLens.push_back(range);//save the length of the row
 		xsofrow.clear();
 	}
 
 	double avgRowLen = 0;
-	for (int k = 0; k < rowLens.size(); k++) {
+	for (int k = 0; k < rowLens.size(); k++) {//sum up all the row lengths
 		avgRowLen += rowLens[k];
 	}
-	avgRowLen /= rowLens.size();
-	avgRowLen /= maxl;
+	avgRowLen /= rowLens.size();//find the average row length
+	avgRowLen /= maxl;//normalize with the largest possible row length
 	cout << "avgRowLen: " << avgRowLen << endl;
 	return avgRowLen;
 }
 
-double cost4(vector<vector<string>> nets, int length, int height, vector<vector<string>> coords, int numGates) {
+double cost4(vector<vector<string>> nets, int length, int height, vector<vector<string>> coords, int numGates) {//congestion
 	double slope = 0;
 	double yint = 0; //y intercept
-	lastCost2 = 0, prevLastCost2 = 0;
-	vector<vector<int>> edgeCoords;
+	vector<vector<int>> edgeCoords; //holds the coordinates of every point used by net edges
 	vector<int> edgePoint;
 	string point1 = "", point2 = "";
 	int ind1 = 0, ind2 = 0;
-	int boundx1 = length / 4, boundx2 = length / 2, boundx3 = 3 * length / 4, boundy1 = height / 4, boundy2 = height / 2, boundy3 = 3 * height / 4;
-	int r1C = 0, r2C = 0, r3C = 0, r4C = 0, r5C = 0, r6C = 0, r7C = 0, r8C = 0, r9C = 0, r10C = 0, r11C = 0, r12C = 0, r13C = 0, r14C = 0, r15C = 0, r16C = 0; //region counts of congestion
+	int boundx1 = length / 4, boundx2 = length / 2, boundx3 = 3 * length / 4, boundy1 = height / 4, boundy2 = height / 2, boundy3 = 3 * height / 4;//boundary lines for the regions of congestion
+	int r1C = 0, r2C = 0, r3C = 0, r4C = 0, r5C = 0, r6C = 0, r7C = 0, r8C = 0, r9C = 0, r10C = 0, r11C = 0, r12C = 0, r13C = 0, r14C = 0, r15C = 0, r16C = 0; //region counters of congestion
 	double avgCongestion = 0;
 	int x = 0, y = 0;
-	bool found = false;
+	bool found = false;//tracks if a common coordinate between 2 edges occurs
 
 	for (int i = 0; i < nets.size(); i++) {
-		for (int j = 0; j < nets[i].size() - 1; j++) {
-			point1 = nets[i][j];
+		for (int j = 0; j < nets[i].size() - 1; j++) {//for every pair of pins/gates in each net
+			point1 = nets[i][j];//get the name of the pin/gate
 			point2 = nets[i][j + 1];
-			if (point1.substr(0).compare("p") == 0) {
+			if (point1.substr(0).compare("p") == 0) {//remove the first value of the name and if it's p, then displace the value previously attached to p byy the number of gates to get the right index for the pin in the coordinate list
 				ind1 = stoi(point1.substr(1, point1.length())) + (numGates - 1);
 			}
-			else {
+			else {//otherwise it's a gate so the index is the number next to a
 				ind1 = stoi(point1.substr(1, point1.length()));
 			}
 
-			if (point2.substr(0).compare("p") == 0) {
+			if (point2.substr(0).compare("p") == 0) {//repeat for the second gates/pins in the pair
 				ind2 = stoi(point2.substr(1, point2.length())) + (numGates - 1);
 			}
 			else {
 				ind2 = stoi(point2.substr(1, point2.length()));
 			}
 
-			if (stoi(coords[ind1][1]) == stoi(coords[ind2][1])) {
+			if (stoi(coords[ind1][1]) == stoi(coords[ind2][1])) {//if the x coordinates of the pair are the same, the edge is just a vertical line so the slope is 1
 				slope = 1;
 			}
-			else {
+			else {//otherwise calculates the slope with rise over run
 				slope = abs(stoi(coords[ind1][2]) - stoi(coords[ind2][2])) / abs(stoi(coords[ind1][1]) - stoi(coords[ind2][1]));
 			}
-			yint = stoi(coords[ind1][2]) - (slope * stoi(coords[ind1][1]));
+			yint = stoi(coords[ind1][2]) - (slope * stoi(coords[ind1][1]));//using y=mx+b, calculates the y intercept
 
 
-			if (stoi(coords[ind1][2]) < stoi(coords[ind2][2])) {
-				for (int k = stoi(coords[ind1][2]); k < stoi(coords[ind2][2]); k++) {
-					x = (k - yint) / slope;
+			if (stoi(coords[ind1][2]) < stoi(coords[ind2][2])) {// depending on which gate/pin is above the other on the chip. This is if the second gate/pin of the pair is above the first
+				for (int k = stoi(coords[ind1][2]); k < stoi(coords[ind2][2]); k++) {//for every y value between the gates/pins
+					x = (k - yint) / slope;//these values must be in the net edge
 					y = k;
-					for (int q = 0; q < edgeCoords.size(); q++) {
-						if (edgeCoords[q][0] == x && edgeCoords[q][1] == y) {
-							if (edgeCoords[q][2] == 1) {
-								if ((x >= 0) && (x < boundx1)) {//find and count intersections in each region
+					for (int q = 0; q < edgeCoords.size(); q++) {//for every net edge
+						if (edgeCoords[q][0] == x && edgeCoords[q][1] == y) {//if the coordinate is already in the list of net edge coordinates
+							if (edgeCoords[q][2] == 1) {//if there isn't an intersection there yet
+								if ((x >= 0) && (x < boundx1)) {//find the region of the intersection and increment
 									if ((y >= 0) && (y < boundy1)) {
 										r1C++;
 									}
@@ -375,29 +376,30 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 									}
 								}
 							}
-							edgeCoords[q][2]++;
-							found = true;
-							break;
+							edgeCoords[q][2]++;//increase appearance count
+							found = true;//indicate the point was found at least once
+							//keep going since a net edge can have mroe than one intersection
+							//break;
 						}
 					}
-					if (found == false) {
+					if (found == false) {//if not in the list of net edge coordinates, must be added with an appearance count of 1
 						edgePoint.push_back(x);
 						edgePoint.push_back(y);
 						edgePoint.push_back(1);
 						edgeCoords.push_back(edgePoint);
 						edgePoint.clear();
 					}
-					found = false;
+					found = false;//reset the found tracker
 				}
 			}
-			else {
+			else {//the same thing as above but instead if gate/pin 1 is above gate/pin 2
 				for (int k = stoi(coords[ind2][2]); k < stoi(coords[ind1][2]); k++) {
 					x = (k - yint) / slope;
 					y = k;
 					for (int q = 0; q < edgeCoords.size(); q++) {
 						if (edgeCoords[q][0] == x && edgeCoords[q][1] == y) {
 							if (edgeCoords[q][2] == 1) {
-								if ((x >= 0) && (x < boundx1)) {//find and count intersections in each region
+								if ((x >= 0) && (x < boundx1)) {
 									if ((y >= 0) && (y < boundy1)) {
 										r1C++;
 									}
@@ -472,7 +474,7 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 		}
 	}
 	avgCongestion = (double)r1C + (double)r2C + (double)r3C + (double)r4C + (double)r5C + (double)r6C + (double)r7C + (double)r8C + (double)r9C + (double)r10C + (double)r11C + (double)r12C + (double)r13C + (double)r14C + (double)r15C + (double)r16C;
-	avgCongestion /= 16;
+	avgCongestion /= 16; //find congestion by taking the average of the congestions of the 16 regions
 	cout << "avgCongestion: " << avgCongestion << endl;
 	return avgCongestion;
 }
@@ -482,10 +484,10 @@ double cost4(vector<vector<string>> nets, int length, int height, vector<vector<
 int main()
 {
 	srand((unsigned int)time(NULL));	// Seed random generator
-	option = 0;
-	lastCost2 = 0;
-	string fileare = "ibm01.are";
-	string text;
+	option = 0; //whcih action perturb did. move, swap, mirror are respectively 0, 1, 2
+	lastCost2 = 0, prevLastCost2 = 0; //the overlap cost of the new placement after perturb and a restore variable in case the changes aren't accepted
+	string fileare = "ibm01.are";//area file
+	string text; //stores arguments from the text file
 	int area;	// Individual area of part
 	int asum = 0;	// Sum of all areas in a file
 	int maxl = 0;	// Largest length of a part
@@ -500,31 +502,31 @@ int main()
 	double cost = 0, newCost = 0, deltaCost = 0; 
 	bool changed = false;
 
-	ifstream infil(fileare);
-	vector <int> areas;
-	vector <string> pins;
-	vector <string> names;
-	vector <string> tcoord;
-	vector <int> scldwnarea;
-	vector <string> pins2;
+	ifstream infil(fileare); //open the area file
+	vector <int> areas; //holds all the gate areas. pins aren't incldued since their area is always 0
+	vector <string> pins; //holds all pin names
+	vector <string> names; //gate names
+	vector <string> tcoord; // holds each set of coordinates to be stored in coord
+	vector <int> scldwnarea; //holds the scaled down areas
+	vector <string> pins2;//a copy of pins
 
-	string filenet = "ibm01.net";
-	string arg1, arg2, arg3;
-	ifstream infile(filenet);
-	vector<vector<string>> nets;
-	vector<string> tnet;
+	string filenet = "ibm01.net";//the net file
+	string arg1, arg2, arg3; //stores the arguments from the net file
+	ifstream infile(filenet);//open net file
+	vector<vector<string>> nets; //stores all the nets, eadch row holds every gate/pin in the net in their proper order
+	vector<string> tnet;//holds each row of nets and pushes it into nets
 	vector<vector<string>> coord; //holds all coordinates for gates and pins
-	vector<vector<string>> newP; 
+	vector<vector<string>> newP;  //holds the perturbed version of coord
 
 	int pperh = 0; // Pins divided by height
-	if (!infil.is_open())
+	if (!infil.is_open())//check if file is succesfully opened
 	{
 		cout << "Error opening file";
 		return 0;
 	}
 	else
 	{
-		while (!infil.eof())
+		while (!infil.eof())//take in arguments from text file. Store names of gates in names and areas of gates in areas
 		{
 			infil >> text;
 			infil >> area;
@@ -547,27 +549,27 @@ int main()
 			}
 			names.push_back(text);
 		}
-		range = maxl - minl;
+		range = maxl - minl; //find variance in length of gates
 	}
 
 	//***********************************************************************************************************//
 
 	int count = 0, numpads = 0;
 
-	if (!infile.is_open())
+	if (!infile.is_open())//make sure file opens ok
 	{
 		cout << "Error opening file";
 		return 0;
 	}
 	else
 	{
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 5; i++)//remove first 5 lines, not needed
 		{
 			infile >> arg1;
 			numpads = stoi(arg1);
 		}
 
-		while (!infile.eof())
+		while (!infile.eof())//store nets in the nets list. Based on s. It stores every pin/gate name from the first s to just before the next s in a row. Each row is a net
 		{
 			infile >> arg1;
 			infile >> arg2;
@@ -588,40 +590,40 @@ int main()
 			}
 		}
 	}
-	if (minl > 0)
+	if (minl > 0)//calculate the longest length and total length
 	{
 		asum /= minl;
 		maxl /= minl;
 	}
 
-	if (range < 9999)
+	if (range < 9999)//if the variance between the smallest and largest lengths is less than 9999, then the chip can be roughly square shaped
 	{
 		maxh = (int)ceil(sqrt(maxl));
 		maxl = maxh;
 	}
-	else
+	else // otherwise there's at least one massive gate and to avoid too much empty space, the length must revolve around that massive length
 	{
 		maxh = (int)ceil((double)asum / maxl);
 	}
-	ph = (double)maxh / (maxl + maxh);
-	pl = (double)1 - ph;
-	npins = (int)pins.size() - 1;
-	nwidth = (int)ceil(npins * ph);
-	if (nwidth % 2 != 0) {
+	ph = (double)maxh / (maxl + maxh);//what % that height makes up the chip's perimeter
+	pl = (double)1 - ph;//what % length makes up of the chip's perimeter
+	npins = (int)pins.size() - 1;//number of pins
+	nwidth = (int)ceil(npins * ph);// number of pins allocated to be on the sides of the chip
+	if (nwidth % 2 != 0) {//if not an even value, give it one more
 		nwidth++;
 	}
-	nlength = npins - nwidth;
+	nlength = npins - nwidth;//number of pins allocated for the top and bottom of the chip
 
-	nlength /= 2;
+	nlength /= 2;//divide by 2 so they're how many pins per indivual length and height rather than both sides
 	nwidth /= 2;
-	lt = maxl;
+	lt = maxl;//the range limiting factor used in perturb. They initially start at the chip's entire length and height
 	ht = maxh;
 
 	int randx = 0, randy = 0;
 
 	for (int i = 0; i < areas.size(); i++)
 	{
-		scldwnarea.push_back(areas[i] / minl);
+		scldwnarea.push_back(areas[i] / minl);//the lengths of each gate. minl is the height of each gate
 	}
 	for (int i = 0; i < areas.size(); i++) //initial placement of gates only, done randomly
 	{
@@ -643,12 +645,12 @@ int main()
 
 	for (int i = areas.size(); i < names.size(); i++)
 	{
-		pins2.push_back(names[i]);
+		pins2.push_back(names[i]);//copy names to pins2
 	}
 	int pcount = 0;
 
-	if (nwidth != 0) {
-		if (nwidth <= 2) {
+	if (nwidth != 0) {//places the pins at equal intervals along the border of the chip. The number of pins on each side of the chip was determiend by the ratio of length and height
+		if (nwidth <= 2) {//if the number of pins for the height are 2, the pins have to be placed at the middle of both sides
 			pperh = maxh / (nwidth + 1);
 
 			for (int i = 1; i <= nwidth; i++)	// Left wall
@@ -671,7 +673,7 @@ int main()
 				pcount++;
 			}
 		}
-		else {
+		else {//otherwise they are placed at equal intervals
 			pperh = maxh / (nwidth - 1);
 
 			for (int i = 0; i < nwidth; i++)	// Left wall
@@ -697,7 +699,7 @@ int main()
 	}
 
 	int pperl = 0;
-	if (nlength != 0) {
+	if (nlength != 0) {//same is done for the length
 		if (nlength <= 2) {
 			pperl = maxl / (nlength + 1);
 
@@ -745,11 +747,11 @@ int main()
 			}
 		}
 	}
-
+	//initial placement done
 	//********************************************************************************************************************************************************************************************************************************************************************//
 	
 	
-
+	/*
 	ofstream before;
 	before.open("InitialPlacementOutput.txt");
 	before << "Initial Placement: " << endl;
@@ -762,61 +764,62 @@ int main()
 		before << endl;
 	}
 	before.close();
-
+	*/
 	double T = 100000; //initial temperature
 	
-	tChecker = T;
-	int counter = 0;
-	int rnd = 0;
-	cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);
+	tChecker = T; //used to check temperature while running
+	int counter = 0;//loop counter for inner while loop
+	int rnd = 0;//random value either 1 or 0 for one of the conditions that allows a changed placement to be approved even if the change in cost is worse
+	cost = cost1_5(nets, coord, areas, 1) + cost2(coord, areas, minl, maxl, maxh) + cost3(coord, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, coord, areas.size()) + cost1_5(nets, coord, areas, 5);//calculate the cost of the initial placement
 	cout << "cost: " << cost << endl;
-	while (T > 1) {
+	while (T > 1) {//until temperature goes under 1, repeat
 		counter = 0;
-		while (counter < (areas.size() / 500)) {//coords, maxh, maxl, scldwnarea, areas.size(), areas, minl, temperature
-			newP = perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
-			if (changed == true) {
-				cost = newCost;
+		while (counter < (areas.size() / 500)) {//trials per temperature
+			newP = perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);//create a slightly changed placement
+			if (changed == true) {//only if the previous changed placement was approved
+				cost = newCost;//cost is now the previous newCost. Since newCost hasn't been recalculated yet, its value is saved and so I never have to recalculate cost again. It either doesn't change, so it stays what it is, or it changed to the newCost, whose value is already saved
 			}
-			newCost = cost1_5(nets, newP, areas, 1) + newCost2(maxl, maxh) + cost3(newP, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
+			newCost = cost1_5(nets, newP, areas, 1) + newCost2(maxl, maxh) + cost3(newP, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);//calculate the cost of the new placement
 			cout << "cost: " << cost << endl;
 			cout << "newCost: " << newCost << endl;
-			deltaCost = newCost - cost;
+			deltaCost = newCost - cost;//calculate the difference in cost
 			rnd = rand() % 2; //0 or 1
-			if (deltaCost < 0) {
-				coord = newP;
-				changed = true;
-				prevLastCost2 = lastCost2;
+			if (deltaCost < 0) {//if the new cost is lower, the new placement becomes the saved one
+				coord = newP;//new placement is now the standard
+				changed = true;//tracks that the new placement was approved
+				prevLastCost2 = lastCost2;//the restore variable is updated to the overlap of the accepted placement
 			}
-			else if (rnd > exp(deltaCost / T)) {
-				coord = newP;
-				changed = true;
-				prevLastCost2 = lastCost2;
+			else if (rnd > exp(deltaCost / T)) {//if the cost is worse but these conditions are met, the new placement is approved anyways
+				coord = newP;//new placement is now the standard
+				changed = true;//tracks that the new placement was approved
+				prevLastCost2 = lastCost2;//the restore variable is updated to the overlap of the accepted placement
 			}
 			else {
 				lastCost2 = prevLastCost2; //restore lastCost2 since cost didn't change so neither should lastCost2
-				changed = false;
+				cor = restoreCor; //restore cor as the change wasn't accepted
+				changed = false;//new placement was rejected so cost won't be altered in the next iteration
 			}
 			counter++;
 		}
-		//T = schedule(T);
+		//T = schedule(T);//decrease the temperature based on if it's a high, medium, or low temperature
 		T -= .95;
-		tChecker = T;
+		tChecker = T;//update tChecker for viewing in the watch feature during running
 	}
 
-	for (int i = 0; i < coord.size(); i++) {
+	for (int i = 0; i < coord.size(); i++) {//
 		
 		if (i > areas.size()-1) {
 			coord[i].push_back("0");
 		}
 		else {
-			coord[i].push_back(to_string(areas[i]));
+			coord[i].push_back(to_string(scldwnarea[i]));//attach the length of all the gates to their coordinates. Useful for graphing later
 		}
 	}
 	ofstream after;
 	after.open("FinalOutput.txt");
 	after << minl*maxl << endl;
 	after << minl*maxh << endl;
-	for (int h = 0; h < coord.size(); h++)
+	for (int h = 0; h < coord.size(); h++)//store the final placement in an output file
 	{
 		for (int r = 0; r < coord[h].size(); r++)
 		{
@@ -826,7 +829,7 @@ int main()
 	}
 	after.close();
 
-	cost1_5(nets, coord, areas, 1);
+	cost1_5(nets, coord, areas, 1);//recalculate net length of final placement and display it
 
 	cout << "Net Lengths:" << endl;
 	for (int i = 0; i < netLengths.size(); i++) {
@@ -834,21 +837,22 @@ int main()
 	}
 	cout << endl;
 	cout << "Overlap:" << endl;
-	cout << newCost2(maxl, maxh) << endl;
+	cout << newCost2(maxl, maxh) << endl;//show overlap of final placement
 	
-	/* HERE FOR TESTING PURPOSES
+	/*
+	// HERE FOR TESTING PURPOSES
 	for (int i = 0; i < 10; i++) {
 		newP = perturb(coord, maxh, maxl, scldwnarea, areas.size(), areas, minl, T);
 		newCost = cost1_5(nets, newP, areas, 1) + newCost2(maxl, maxh) + cost3(newP, areas, minl, maxh, maxl) + cost4(nets, maxl, maxh, newP, areas.size()) + cost1_5(nets, newP, areas, 5);
 		cout << "newCost: " << newCost << endl;
 		cout << "option: " << option << endl;
 	}
-
-	//for (int i = 0; i < coord.size(); i++) {
-	//	if (stoi(coord[i][2]) != stoi(newP[i][2])) {
-	//		cout << "difference found" << endl;
-	//	}
-	//}
+	/*
+	for (int i = 0; i < coord.size(); i++) {
+		if (stoi(coord[i][2]) != stoi(newP[i][2])) {
+			cout << "difference found" << endl;
+		}
+	}
 	*/
 
 	infil.close();
